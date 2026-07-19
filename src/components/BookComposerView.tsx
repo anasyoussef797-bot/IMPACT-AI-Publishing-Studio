@@ -37,6 +37,167 @@ export default function BookComposerView() {
 
   const activePage = currentBook.pages.find(p => p.id === selectedPageId) || currentBook.pages[0];
 
+  // Kids smart outline & color palette states
+  const [outlineDataUrl, setOutlineDataUrl] = useState<string | null>(null);
+  const [isProcessingOutline, setIsProcessingOutline] = useState(false);
+  const [outlineThreshold, setOutlineThreshold] = useState(40);
+  const [useSmartOutline, setUseSmartOutline] = useState(true);
+  
+  // Current active page's custom kid colors (default to standard crayon colors)
+  const [colorsUsed, setColorsUsed] = useState<string[]>(['#e11d48', '#2563eb', '#16a34a', '#ca8a04', '#ea580c']);
+
+  // Sync activePage's color palette when activePage changes
+  useEffect(() => {
+    if (activePage) {
+      if (activePage.colorsUsed && activePage.colorsUsed.length === 5) {
+        setColorsUsed(activePage.colorsUsed);
+      } else {
+        setColorsUsed(['#e11d48', '#2563eb', '#16a34a', '#ca8a04', '#ea580c']);
+      }
+    }
+  }, [activePage?.id, activePage?.colorsUsed]);
+
+  // Kids smart outline extractor effect with CORS-safe canvas drawing
+  useEffect(() => {
+    if (!activePage || !activePage.illustrationUrl) {
+      setOutlineDataUrl(null);
+      return;
+    }
+
+    if (!useSmartOutline || activePage.layoutType !== 'coloring') {
+      setOutlineDataUrl(null);
+      return;
+    }
+
+    let isMounted = true;
+    setIsProcessingOutline(true);
+
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    
+    // Use canvas bypass for standard Unsplash or external assets to avoid CORS issues
+    if (activePage.illustrationUrl.startsWith('http') && !activePage.illustrationUrl.includes('localhost')) {
+      img.src = `${activePage.illustrationUrl}${activePage.illustrationUrl.includes('?') ? '&' : '?'}cb=${Date.now()}`;
+    } else {
+      img.src = activePage.illustrationUrl;
+    }
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          if (isMounted) {
+            setOutlineDataUrl(activePage.illustrationUrl);
+            setIsProcessingOutline(false);
+          }
+          return;
+        }
+
+        const maxDim = 500;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+
+        const imgData = ctx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+        const len = data.length;
+
+        // Grayscale conversion
+        const gray = new Uint8ClampedArray(w * h);
+        for (let i = 0; i < len; i += 4) {
+          gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        }
+
+        const output = ctx.createImageData(w, h);
+        const outData = output.data;
+
+        // Perform gradient difference thresholding
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const idx = y * w + x;
+
+            const val = gray[idx];
+            const right = gray[idx + 1];
+            const down = gray[idx + w];
+
+            const diffX = Math.abs(val - right);
+            const diffY = Math.abs(val - down);
+            const grad = diffX + diffY;
+
+            const isEdge = grad > outlineThreshold;
+            const color = isEdge ? 0 : 255;
+
+            const outIdx = idx * 4;
+            outData[outIdx] = color;
+            outData[outIdx + 1] = color;
+            outData[outIdx + 2] = color;
+            outData[outIdx + 3] = 255;
+          }
+        }
+
+        // Pad borders with white
+        for (let x = 0; x < w; x++) {
+          const topIdx = x * 4;
+          const bottomIdx = ((h - 1) * w + x) * 4;
+          outData[topIdx] = outData[topIdx+1] = outData[topIdx+2] = 255; outData[topIdx+3] = 255;
+          outData[bottomIdx] = outData[bottomIdx+1] = outData[bottomIdx+2] = 255; outData[bottomIdx+3] = 255;
+        }
+        for (let y = 0; y < h; y++) {
+          const leftIdx = y * w * 4;
+          const rightIdx = (y * w + w - 1) * 4;
+          outData[leftIdx] = outData[leftIdx+1] = outData[leftIdx+2] = 255; outData[leftIdx+3] = 255;
+          outData[rightIdx] = outData[rightIdx+1] = outData[rightIdx+2] = 255; outData[rightIdx+3] = 255;
+        }
+
+        ctx.putImageData(output, 0, 0);
+        
+        if (isMounted) {
+          setOutlineDataUrl(canvas.toDataURL('image/png'));
+          setIsProcessingOutline(false);
+        }
+      } catch (e) {
+        console.warn('Canvas outlining failed (likely CORS). Falling back to CSS filters.', e);
+        if (isMounted) {
+          setOutlineDataUrl(null);
+          setIsProcessingOutline(false);
+        }
+      }
+    };
+
+    img.onerror = () => {
+      if (isMounted) {
+        setOutlineDataUrl(null);
+        setIsProcessingOutline(false);
+      }
+    };
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activePage?.id, activePage?.illustrationUrl, outlineThreshold, useSmartOutline, activePage?.layoutType]);
+
+  const handleColorChange = (idx: number, val: string) => {
+    const updated = [...colorsUsed];
+    updated[idx] = val;
+    setColorsUsed(updated);
+    if (activePage) {
+      updatePage(activePage.id, { colorsUsed: updated });
+    }
+  };
+
   const handleLayoutChange = (val: LayoutType) => {
     if (activePage) {
       updatePage(activePage.id, { layoutType: val });
@@ -304,8 +465,76 @@ export default function BookComposerView() {
                     </div>
                   )}
 
-                  {/* TEXT & ILLUSTRATION / TRACING / COLORING / ACTIVITY LAYOUTS */}
-                  {activePage.layoutType !== 'title' && activePage.layoutType !== 'full-illustration' && (
+                  {/* COLORING SHEET LAYOUT */}
+                  {activePage.layoutType === 'coloring' && (
+                    <div className="h-full flex flex-col justify-between text-right" dir="rtl">
+                      {/* Top instruction/caption */}
+                      <div>
+                        <h4 className="text-xs font-display font-extrabold text-slate-900 tracking-tight leading-none mb-1">
+                          {activePage.title || t('untitled_page')}
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
+                          {activePage.textContent || 'لون الرسمة التالية بألوانك الجميلة:'}
+                        </p>
+                      </div>
+
+                      {/* Coloring outline container */}
+                      <div className="flex-1 my-2 bg-slate-50 rounded-lg border border-slate-200 overflow-hidden relative flex items-center justify-center">
+                        {activePage.illustrationUrl ? (
+                          <div className="w-full h-full relative">
+                            {isProcessingOutline && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-10">
+                                <span className="text-[9px] text-slate-400 font-bold">جاري استخلاص خطوط الرسم...</span>
+                              </div>
+                            )}
+                            <img 
+                              src={outlineDataUrl || activePage.illustrationUrl} 
+                              alt="Coloring outline" 
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-contain mix-blend-multiply"
+                              style={!outlineDataUrl ? { filter: 'grayscale(100%) contrast(1000%) brightness(130%)' } : {}}
+                            />
+                            {/* Floating color guide */}
+                            <div className="absolute top-2 right-2 w-12 h-16 bg-white border border-brand-500 rounded shadow-sm overflow-hidden flex flex-col items-center z-20">
+                              <span className="bg-brand-500 text-white text-[5px] font-sans font-bold w-full text-center py-0.5 leading-none">
+                                دليل الألوان
+                              </span>
+                              <img 
+                                src={activePage.illustrationUrl} 
+                                alt="Color guide" 
+                                referrerPolicy="no-referrer"
+                                className="w-full h-12 object-cover" 
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center p-4">
+                            <span className="text-[10px] text-slate-400 font-mono">الرجاء توليد أو إضافة صورة لتلوينها</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bottom Color Palette circles */}
+                      <div className="flex flex-col items-center justify-center gap-0.5 border-t border-slate-100 pt-1.5" dir="rtl">
+                        <span className="text-[7px] font-sans font-extrabold text-slate-400 block uppercase tracking-wider mb-0.5">
+                          الألوان المقترحة للتلوين:
+                        </span>
+                        <div className="flex items-center justify-center gap-2">
+                          {colorsUsed.map((color, index) => (
+                            <div key={index} className="flex flex-col items-center">
+                              <div 
+                                className="w-4.5 h-4.5 rounded-full border border-slate-200 shadow-xs"
+                                style={{ backgroundColor: color }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TEXT & ILLUSTRATION / TRACING / ACTIVITY LAYOUTS */}
+                  {activePage.layoutType !== 'title' && activePage.layoutType !== 'full-illustration' && activePage.layoutType !== 'coloring' && (
                     <div className="h-full flex flex-col justify-between space-y-4">
                       <div className="flex gap-3">
                         {activePage.illustrationUrl && (
@@ -580,6 +809,71 @@ export default function BookComposerView() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Coloring Sheet Controls (Contrast & Color Palette) */}
+                    {activePage.layoutType === 'coloring' && (
+                      <div className="border-t border-slate-100 pt-3 space-y-4">
+                        <div className="bg-brand-50/30 border border-brand-100 p-3 rounded-lg space-y-2">
+                          <h5 className="text-[10px] uppercase font-mono font-bold text-brand-800 tracking-wider flex items-center gap-1">
+                            <span>🎨</span> Suggested Colors Palette
+                          </h5>
+                          <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
+                            Configure the 5 suggested colors to guide the child's coloring experience:
+                          </p>
+                          <div className="flex items-center gap-2">
+                            {colorsUsed.map((color, idx) => (
+                              <div key={idx} className="relative flex flex-col items-center gap-1">
+                                <div 
+                                  className="w-7 h-7 rounded-full border border-slate-300 shadow-xs cursor-pointer relative overflow-hidden"
+                                  style={{ backgroundColor: color }}
+                                >
+                                  <input 
+                                    type="color" 
+                                    value={color}
+                                    onChange={(e) => handleColorChange(idx, e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                  />
+                                </div>
+                                <span className="text-[8px] font-mono text-slate-400 uppercase leading-none">
+                                  {color.substring(1, 5)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                              Smart Outline Filter
+                            </label>
+                            <input 
+                              type="checkbox"
+                              checked={useSmartOutline}
+                              onChange={(e) => setUseSmartOutline(e.target.checked)}
+                              className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-3.5 w-3.5"
+                            />
+                          </div>
+
+                          {useSmartOutline && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between text-[10px] font-sans text-slate-500">
+                                <span>Outline Threshold</span>
+                                <span className="font-mono font-bold">{outlineThreshold}</span>
+                              </div>
+                              <input 
+                                type="range" 
+                                min="10" 
+                                max="100" 
+                                value={outlineThreshold}
+                                onChange={(e) => setOutlineThreshold(Number(e.target.value))}
+                                className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand-500"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

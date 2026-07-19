@@ -233,7 +233,7 @@ export default function SimpleWorkspaceView() {
     let isMounted = true;
     setIsProcessingOutline(true);
 
-    const img = new Image();
+    const img = new window.Image();
     img.crossOrigin = 'anonymous';
     
     // Use canvas bypass for standard Unsplash or external assets to avoid CORS issues
