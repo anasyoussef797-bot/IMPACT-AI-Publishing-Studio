@@ -21,6 +21,14 @@ interface PublishingState {
   isAiGenerating: boolean;
   aiStatusMessage: string;
 
+  // Custom AI Credentials & Providers
+  customApiKey: string;
+  aiProvider: 'gemini' | 'openai' | 'anthropic';
+  customModel: string;
+  setCustomApiKey: (key: string) => void;
+  setAiProvider: (provider: 'gemini' | 'openai' | 'anthropic') => void;
+  setCustomModel: (model: string) => void;
+
   // Actions
   setUiLanguage: (lang: 'ar' | 'en' | 'fr' | 'de') => void;
   setProfessionalMode: (val: boolean) => void;
@@ -292,6 +300,40 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
   ],
   isChatLoading: false,
 
+  // Custom AI Credentials State
+  customApiKey: typeof window !== 'undefined' ? (window.localStorage.getItem('impact_custom_api_key') || '') : '',
+  aiProvider: typeof window !== 'undefined' ? ((window.localStorage.getItem('impact_ai_provider') || 'gemini') as any) : 'gemini',
+  customModel: typeof window !== 'undefined' ? (window.localStorage.getItem('impact_custom_model') || 'gemini-3.5-flash') : 'gemini-3.5-flash',
+
+  setCustomApiKey: (key) => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('impact_custom_api_key', key);
+    }
+    set({ customApiKey: key });
+    get().addNotification('success', 'API Key updated successfully.');
+  },
+
+  setAiProvider: (provider) => {
+    let defaultModel = 'gemini-3.5-flash';
+    if (provider === 'openai') defaultModel = 'gpt-4o-mini';
+    else if (provider === 'anthropic') defaultModel = 'claude-3-5-sonnet-latest';
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('impact_ai_provider', provider);
+      window.localStorage.setItem('impact_custom_model', defaultModel);
+    }
+    set({ aiProvider: provider, customModel: defaultModel });
+    get().addNotification('info', `AI Provider switched to: ${provider.toUpperCase()}`);
+  },
+
+  setCustomModel: (model) => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('impact_custom_model', model);
+    }
+    set({ customModel: model });
+    get().addNotification('info', `Model updated to: ${model}`);
+  },
+
   // Global Settings Actions
   setUiLanguage: (uiLanguage) => {
     set({ uiLanguage });
@@ -411,7 +453,12 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
       // Direct integration call mock or actually routed to our server API
       const res = await fetch('/api/book/generate-chapters', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-custom-api-key': get().customApiKey || '',
+          'x-custom-provider': get().aiProvider || 'gemini',
+          'x-custom-model': get().customModel || ''
+        },
         body: JSON.stringify({
           title: book.metadata.title,
           ageGroup: book.metadata.ageGroup,
@@ -619,7 +666,12 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
     try {
       const res = await fetch('/api/book/generate-illustration', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-custom-api-key': get().customApiKey || '',
+          'x-custom-provider': get().aiProvider || 'gemini',
+          'x-custom-model': get().customModel || ''
+        },
         body: JSON.stringify({ prompt, type })
       });
       const data = await res.json();
@@ -684,7 +736,12 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
     try {
       const res = await fetch('/api/book/generate-content', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-custom-api-key': get().customApiKey || '',
+          'x-custom-provider': get().aiProvider || 'gemini',
+          'x-custom-model': get().customModel || ''
+        },
         body: JSON.stringify({
           description,
           ageGroup: book.metadata.ageGroup,
@@ -727,7 +784,12 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
     try {
       const res = await fetch('/api/book/preflight', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-custom-api-key': get().customApiKey || '',
+          'x-custom-provider': get().aiProvider || 'gemini',
+          'x-custom-model': get().customModel || ''
+        },
         body: JSON.stringify({ book })
       });
       const data = await res.json();
@@ -1419,7 +1481,12 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
     try {
       const res = await fetch('/api/assistant/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-custom-api-key': get().customApiKey || '',
+          'x-custom-provider': get().aiProvider || 'gemini',
+          'x-custom-model': get().customModel || ''
+        },
         body: JSON.stringify({
           message: messageText,
           currentBook: get().currentBook

@@ -16,25 +16,226 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// Lazy initializer for Google GenAI client following strict secure guidelines
-let aiClient: GoogleGenAI | null = null;
+// Helper function to extract credentials from headers or fall back to system env
+function getRequestCredentials(req: express.Request) {
+  const customKey = req.headers['x-custom-api-key'] as string;
+  const customProvider = req.headers['x-custom-provider'] as string;
+  const customModel = req.headers['x-custom-model'] as string;
 
-function getAiClient(): GoogleGenAI {
-  if (!aiClient) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key || key === 'MY_GEMINI_API_KEY') {
-      throw new Error('GEMINI_API_KEY environment variable is not configured in Secrets.');
-    }
-    aiClient = new GoogleGenAI({
-      apiKey: key,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
-    });
+  if (customKey && customKey.trim().length > 0) {
+    return {
+      key: customKey.trim(),
+      provider: customProvider || 'gemini',
+      model: customModel || ''
+    };
   }
-  return aiClient;
+
+  // Fallback to environment variables
+  const fallbackKey = process.env.GEMINI_API_KEY;
+  if (!fallbackKey || fallbackKey === 'MY_GEMINI_API_KEY' || fallbackKey === '') {
+    throw new Error('API Key is missing. Please enter your API key in the AI Providers panel on the screen.');
+  }
+
+  return {
+    key: fallbackKey,
+    provider: 'gemini',
+    model: 'gemini-3.5-flash'
+  };
+}
+
+// Dynamic LLM caller supporting Google Gemini, OpenAI, and Anthropic Claude
+async function callLLM(options: {
+  provider: string;
+  key: string;
+  model: string;
+  systemInstruction: string;
+  prompt: string;
+  responseSchema?: any;
+}) {
+  const { provider, key, model, systemInstruction, prompt, responseSchema } = options;
+
+  if (provider === 'gemini') {
+    const ai = new GoogleGenAI({
+      apiKey: key,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+    const config: any = {
+      systemInstruction,
+    };
+    if (responseSchema) {
+      config.responseMimeType = 'application/json';
+      config.responseSchema = responseSchema;
+    }
+    const response = await ai.models.generateContent({
+      model: model || 'gemini-3.5-flash',
+      contents: prompt,
+      config
+    });
+    return response.text?.trim() || '';
+  }
+
+  if (provider === 'openai') {
+    const openaiModel = model || 'gpt-4o-mini';
+    const messages = [];
+    if (systemInstruction) {
+      messages.push({ role: 'system', content: systemInstruction });
+    }
+    
+    const schemaString = responseSchema ? JSON.stringify(responseSchema, null, 2) : '';
+    const jsonInstruction = responseSchema 
+      ? `\n\nIMPORTANT: You must return a valid JSON object matching this schema. Do not include markdown formatting or block enclosures. Return ONLY the raw JSON content:\n${schemaString}` 
+      : '';
+      
+    messages.push({ role: 'user', content: prompt + jsonInstruction });
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: openaiModel,
+        messages,
+        response_format: responseSchema ? { type: 'json_object' } : undefined,
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+    }
+
+    const data: any = await response.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || '';
+    if (text.startsWith('```json')) {
+      text = text.substring(7);
+    }
+    if (text.endsWith('```')) {
+      text = text.substring(0, text.length - 3);
+    }
+    return text.trim();
+  }
+
+  if (provider === 'anthropic') {
+    const claudeModel = model || 'claude-3-5-sonnet-latest';
+    const schemaString = responseSchema ? JSON.stringify(responseSchema, null, 2) : '';
+    const jsonInstruction = responseSchema 
+      ? `\n\nIMPORTANT: You must return a valid JSON object matching this schema. Do not include markdown formatting or block enclosures. Return ONLY the raw JSON content:\n${schemaString}` 
+      : '';
+    
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: claudeModel,
+        max_tokens: 4000,
+        system: systemInstruction,
+        messages: [{ role: 'user', content: prompt + jsonInstruction }],
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
+    }
+
+    const data: any = await response.json();
+    let text = data.content?.[0]?.text?.trim() || '';
+    if (text.startsWith('```json')) {
+      text = text.substring(7);
+    }
+    if (text.endsWith('```')) {
+      text = text.substring(0, text.length - 3);
+    }
+    return text.trim();
+  }
+
+  throw new Error(`Unsupported AI Provider: ${provider}`);
+}
+
+// Dynamic Image generation supporting Google Gemini and OpenAI DALL-E 3
+async function callImageGen(options: {
+  provider: string;
+  key: string;
+  model: string;
+  prompt: string;
+  type: 'coloring' | 'vector' | 'illustration';
+}) {
+  const { provider, key, model, prompt, type } = options;
+
+  let imagePrompt = prompt;
+  if (type === 'coloring') {
+    imagePrompt = `Minimalist clean black and white outline vector drawing for a children coloring book, thick outlines, no shading, simple forms, cute cartoon style, topic: ${prompt}`;
+  } else {
+    imagePrompt = `Professional premium vector children illustration, vibrant colors, clean vector lines, white background, whimsical and educational, topic: ${prompt}`;
+  }
+
+  if (provider === 'gemini') {
+    const ai = new GoogleGenAI({
+      apiKey: key,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+    const response = await ai.models.generateContent({
+      model: model || 'gemini-3.1-flash-lite-image',
+      contents: { parts: [{ text: imagePrompt }] },
+      config: { imageConfig: { aspectRatio: '1:1' } }
+    });
+
+    let imageUrl: string | null = null;
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          const base64Data = part.inlineData.data;
+          imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${base64Data}`;
+          break;
+        }
+      }
+    }
+    if (imageUrl) return imageUrl;
+    throw new Error('Gemini image generator returned no inline data.');
+  }
+
+  if (provider === 'openai') {
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: imagePrompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI DALL-E error: ${response.status} - ${errorText}`);
+    }
+
+    const data: any = await response.json();
+    const b64 = data.data?.[0]?.b64_json;
+    if (b64) {
+      return `data:image/png;base64,${b64}`;
+    }
+    throw new Error('DALL-E 3 did not return base64 data.');
+  }
+
+  if (provider === 'anthropic') {
+    throw new Error('Anthropic Claude does not support image generation. Please switch provider to OpenAI (DALL-E 3) or Gemini for illustrations.');
+  }
+
+  throw new Error(`Unsupported AI Provider for image generation: ${provider}`);
 }
 
 // ----------------------------------------------------
@@ -49,7 +250,7 @@ app.post('/api/book/generate-chapters', async (req, res) => {
   const { title, ageGroup, bookType, language, targetCurriculum, pedagogicalGoal } = req.body;
 
   try {
-    const ai = getAiClient();
+    const creds = getRequestCredentials(req);
     
     const prompt = `Please structure a professional curriculum roadmap / chapter index for an educational book:
     - Title: "${title}"
@@ -61,49 +262,51 @@ app.post('/api/book/generate-chapters', async (req, res) => {
     
     Structure exactly 2 to 3 high-quality educational chapters. Provide a clean title, description, learning objectives, and a reasonable page range for each chapter.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: 'You are an elite educational curriculum architect and senior schoolbook publishing director. Always respond with perfectly valid JSON conforming exactly to the requested schema. Ensure language fits the target linguistic demographic.',
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            chapters: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING, description: 'Unique slug like "ch-intro"' },
-                  title: { type: Type.STRING, description: 'Descriptive curriculum module title' },
-                  description: { type: Type.STRING, description: 'Summary of educational milestones in this module' },
-                  learningObjectives: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING },
-                    description: 'Measurable child learning outcomes'
-                  },
-                  pageRange: {
-                    type: Type.ARRAY,
-                    items: { type: Type.INTEGER },
-                    description: 'Starting and ending page numbers as [start, end]'
-                  }
-                },
-                required: ['id', 'title', 'description', 'learningObjectives', 'pageRange']
+    const systemInstruction = 'You are an elite educational curriculum architect and senior schoolbook publishing director. Always respond with perfectly valid JSON conforming exactly to the requested schema. Ensure language fits the target linguistic demographic.';
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        chapters: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING, description: 'Unique slug like "ch-intro"' },
+              title: { type: Type.STRING, description: 'Descriptive curriculum module title' },
+              description: { type: Type.STRING, description: 'Summary of educational milestones in this module' },
+              learningObjectives: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: 'Measurable child learning outcomes'
+              },
+              pageRange: {
+                type: Type.ARRAY,
+                items: { type: Type.INTEGER },
+                description: 'Starting and ending page numbers as [start, end]'
               }
-            }
-          },
-          required: ['chapters']
+            },
+            required: ['id', 'title', 'description', 'learningObjectives', 'pageRange']
+          }
         }
-      }
+      },
+      required: ['chapters']
+    };
+
+    const textResult = await callLLM({
+      provider: creds.provider,
+      key: creds.key,
+      model: creds.model,
+      systemInstruction,
+      prompt,
+      responseSchema
     });
 
-    const jsonText = response.text?.trim() || '';
-    const parsed = JSON.parse(jsonText);
+    const parsed = JSON.parse(textResult);
     res.json(parsed);
 
   } catch (error: any) {
-    console.warn('[SERVER] Generate chapters failed or API Key missing. Returning fallback simulation context.', error.message);
+    console.warn('[SERVER] Generate chapters failed or API Key missing.', error.message);
     res.status(500).json({ error: error.message, isFallback: true });
   }
 });
@@ -116,7 +319,7 @@ app.post('/api/book/generate-content', async (req, res) => {
   const { description, ageGroup, language, bookType } = req.body;
 
   try {
-    const ai = getAiClient();
+    const creds = getRequestCredentials(req);
     
     const prompt = `Compose page text and content details for an educational schoolbook:
     - Page Goal/Description: "${description}"
@@ -126,29 +329,31 @@ app.post('/api/book/generate-content', async (req, res) => {
     
     The text must be highly engaging, educational, safe, and grammatically impeccable for this age group.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: 'You are a veteran children\'s educational writer and pediatric reading specialist. Produce perfectly valid JSON outputs.',
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING, description: 'Descriptive title for the composed page' },
-            textContent: { type: Type.STRING, description: 'The actual narrative, guidelines, or tracing descriptions for the child' }
-          },
-          required: ['title', 'textContent']
-        }
-      }
+    const systemInstruction = "You are a veteran children's educational writer and pediatric reading specialist. Produce perfectly valid JSON outputs.";
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING, description: 'Descriptive title for the composed page' },
+        textContent: { type: Type.STRING, description: 'The actual narrative, guidelines, or tracing descriptions for the child' }
+      },
+      required: ['title', 'textContent']
+    };
+
+    const textResult = await callLLM({
+      provider: creds.provider,
+      key: creds.key,
+      model: creds.model,
+      systemInstruction,
+      prompt,
+      responseSchema
     });
 
-    const jsonText = response.text?.trim() || '';
-    const parsed = JSON.parse(jsonText);
+    const parsed = JSON.parse(textResult);
     res.json(parsed);
 
   } catch (error: any) {
-    console.warn('[SERVER] Generate content failed or API Key missing. Returning fallback simulation.', error.message);
+    console.warn('[SERVER] Generate content failed or API Key missing.', error.message);
     res.status(500).json({ error: error.message, isFallback: true });
   }
 });
@@ -161,48 +366,19 @@ app.post('/api/book/generate-illustration', async (req, res) => {
   const { prompt, type } = req.body;
 
   try {
-    const ai = getAiClient();
-    
-    let imagePrompt = prompt;
-    if (type === 'coloring') {
-      imagePrompt = `Minimalist clean black and white outline vector drawing for a children coloring book, thick outlines, no shading, simple forms, cute cartoon style, topic: ${prompt}`;
-    } else {
-      imagePrompt = `Professional premium vector children illustration, vibrant colors, clean vector lines, white background, whimsical and educational, topic: ${prompt}`;
-    }
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-image',
-      contents: {
-        parts: [
-          { text: imagePrompt }
-        ]
-      },
-      config: {
-        imageConfig: {
-          aspectRatio: '1:1'
-        }
-      }
+    const creds = getRequestCredentials(req);
+    const imageUrl = await callImageGen({
+      provider: creds.provider,
+      key: creds.key,
+      model: creds.model,
+      prompt,
+      type
     });
 
-    let imageUrl: string | null = null;
-    if (response.candidates?.[0]?.content?.parts) {
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          const base64Data = part.inlineData.data;
-          imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${base64Data}`;
-          break;
-        }
-      }
-    }
-
-    if (imageUrl) {
-      res.json({ url: imageUrl });
-    } else {
-      throw new Error('Image generator returned no binary inline parts.');
-    }
+    res.json({ url: imageUrl });
 
   } catch (error: any) {
-    console.warn('[SERVER] Generate illustration failed or API Key missing. Fallback will trigger on frontend.', error.message);
+    console.warn('[SERVER] Generate illustration failed or API Key missing.', error.message);
     res.status(500).json({ error: error.message, isFallback: true });
   }
 });
@@ -215,7 +391,7 @@ app.post('/api/book/preflight', async (req, res) => {
   const { book } = req.body;
 
   try {
-    const ai = getAiClient();
+    const creds = getRequestCredentials(req);
     
     const prompt = `Conduct a technical preflight review and educational quality assessment of the following book volume:
     Title: "${book.metadata.title}"
@@ -230,42 +406,44 @@ app.post('/api/book/preflight', async (req, res) => {
     
     Identify potential warnings or passes, calculate exact quality percentage scores, and formulate critical messages.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: 'You are a professional pre-press flight engineer and curriculum compliance officer. Evaluate details and output strict JSON.',
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            isPreflightPassed: { type: Type.BOOLEAN },
-            educationalConsistencyScore: { type: Type.INTEGER },
-            printSafetyScore: { type: Type.INTEGER },
-            imageResolutionScore: { type: Type.INTEGER },
-            finalScore: { type: Type.INTEGER },
-            checks: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  name: { type: Type.STRING },
-                  status: { type: Type.STRING, description: "Must be 'pass', 'warning', or 'fail'" },
-                  message: { type: Type.STRING },
-                  module: { type: Type.STRING, description: "Must be 'educational', 'print', 'resolution', or 'consistency'" }
-                },
-                required: ['id', 'name', 'status', 'message', 'module']
-              }
-            }
-          },
-          required: ['isPreflightPassed', 'educationalConsistencyScore', 'printSafetyScore', 'imageResolutionScore', 'finalScore', 'checks']
+    const systemInstruction = 'You are a professional pre-press flight engineer and curriculum compliance officer. Evaluate details and output strict JSON.';
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        isPreflightPassed: { type: Type.BOOLEAN },
+        educationalConsistencyScore: { type: Type.INTEGER },
+        printSafetyScore: { type: Type.INTEGER },
+        imageResolutionScore: { type: Type.INTEGER },
+        finalScore: { type: Type.INTEGER },
+        checks: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              name: { type: Type.STRING },
+              status: { type: Type.STRING, description: "Must be 'pass', 'warning', or 'fail'" },
+              message: { type: Type.STRING },
+              module: { type: Type.STRING, description: "Must be 'educational', 'print', 'resolution', or 'consistency'" }
+            },
+            required: ['id', 'name', 'status', 'message', 'module']
+          }
         }
-      }
+      },
+      required: ['isPreflightPassed', 'educationalConsistencyScore', 'printSafetyScore', 'imageResolutionScore', 'finalScore', 'checks']
+    };
+
+    const textResult = await callLLM({
+      provider: creds.provider,
+      key: creds.key,
+      model: creds.model,
+      systemInstruction,
+      prompt,
+      responseSchema
     });
 
-    const jsonText = response.text?.trim() || '';
-    const parsed = JSON.parse(jsonText);
+    const parsed = JSON.parse(textResult);
     res.json({ report: parsed });
 
   } catch (error: any) {
@@ -282,7 +460,7 @@ app.post('/api/assistant/chat', async (req, res) => {
   const { message, currentBook } = req.body;
 
   try {
-    const ai = getAiClient();
+    const creds = getRequestCredentials(req);
     
     const prompt = `The user is interacting with IMPACT AI Publishing Studio.
     User's request: "${message}"
@@ -302,99 +480,101 @@ app.post('/api/assistant/chat', async (req, res) => {
     
     Map the description into high-quality educational chapters and beautiful preschool or early-grade pages (including illustration prompts and layout types like 'coloring', 'tracing', 'text-illustration') as needed.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: 'You are an elite AI Publishing Assistant and Lead Educational Architect. Return a single JSON object containing "reply" and an array of "actions" as instructed. Always output perfectly valid JSON matching the schema.',
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            reply: { type: Type.STRING },
-            actions: {
-              type: Type.ARRAY,
-              items: {
+    const systemInstruction = 'You are an elite AI Publishing Assistant and Lead Educational Architect. Return a single JSON object containing "reply" and an array of "actions" as instructed. Always output perfectly valid JSON matching the schema.';
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        reply: { type: Type.STRING },
+        actions: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              type: { type: Type.STRING },
+              payload: {
                 type: Type.OBJECT,
                 properties: {
-                  type: { type: Type.STRING },
-                  payload: {
+                  metadata: {
                     type: Type.OBJECT,
                     properties: {
-                      metadata: {
+                      title: { type: Type.STRING },
+                      subtitle: { type: Type.STRING },
+                      author: { type: Type.STRING },
+                      ageGroup: { type: Type.STRING },
+                      bookType: { type: Type.STRING },
+                      language: { type: Type.STRING },
+                      targetCurriculum: { type: Type.STRING },
+                      pedagogicalGoal: { type: Type.STRING },
+                      dimensions: {
                         type: Type.OBJECT,
                         properties: {
-                          title: { type: Type.STRING },
-                          subtitle: { type: Type.STRING },
-                          author: { type: Type.STRING },
-                          ageGroup: { type: Type.STRING },
-                          bookType: { type: Type.STRING },
-                          language: { type: Type.STRING },
-                          targetCurriculum: { type: Type.STRING },
-                          pedagogicalGoal: { type: Type.STRING },
-                          dimensions: {
-                            type: Type.OBJECT,
-                            properties: {
-                              width: { type: Type.NUMBER },
-                              height: { type: Type.NUMBER },
-                              unit: { type: Type.STRING }
-                            }
-                          }
+                          width: { type: Type.NUMBER },
+                          height: { type: Type.NUMBER },
+                          unit: { type: Type.STRING }
                         }
-                      },
-                      chapters: {
-                        type: Type.ARRAY,
-                        items: {
-                          type: Type.OBJECT,
-                          properties: {
-                            id: { type: Type.STRING },
-                            title: { type: Type.STRING },
-                            description: { type: Type.STRING },
-                            learningObjectives: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            pageRange: { type: Type.ARRAY, items: { type: Type.INTEGER } }
-                          },
-                          required: ['id', 'title', 'description', 'learningObjectives', 'pageRange']
-                        }
-                      },
-                      pages: {
-                        type: Type.ARRAY,
-                        items: {
-                          type: Type.OBJECT,
-                          properties: {
-                            id: { type: Type.STRING },
-                            pageNumber: { type: Type.INTEGER },
-                            chapterId: { type: Type.STRING },
-                            layoutType: { type: Type.STRING },
-                            title: { type: Type.STRING },
-                            textContent: { type: Type.STRING },
-                            illustrationPrompt: { type: Type.STRING },
-                            isDoublePage: { type: Type.BOOLEAN },
-                            bleedSafetyZone: { type: Type.BOOLEAN },
-                            cropMarksEnabled: { type: Type.BOOLEAN },
-                            reviewStatus: { type: Type.STRING }
-                          },
-                          required: ['id', 'pageNumber', 'layoutType', 'isDoublePage', 'bleedSafetyZone', 'cropMarksEnabled', 'reviewStatus']
-                        }
-                      },
-                      stage: { type: Type.STRING }
+                      }
                     }
-                  }
-                },
-                required: ['type', 'payload']
+                  },
+                  chapters: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        id: { type: Type.STRING },
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        learningObjectives: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        pageRange: { type: Type.ARRAY, items: { type: Type.INTEGER } }
+                      },
+                      required: ['id', 'title', 'description', 'learningObjectives', 'pageRange']
+                    }
+                  },
+                  pages: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        id: { type: Type.STRING },
+                        pageNumber: { type: Type.INTEGER },
+                        chapterId: { type: Type.STRING },
+                        layoutType: { type: Type.STRING },
+                        title: { type: Type.STRING },
+                        textContent: { type: Type.STRING },
+                        illustrationPrompt: { type: Type.STRING },
+                        isDoublePage: { type: Type.BOOLEAN },
+                        bleedSafetyZone: { type: Type.BOOLEAN },
+                        cropMarksEnabled: { type: Type.BOOLEAN },
+                        reviewStatus: { type: Type.STRING }
+                      },
+                      required: ['id', 'pageNumber', 'layoutType', 'isDoublePage', 'bleedSafetyZone', 'cropMarksEnabled', 'reviewStatus']
+                    }
+                  },
+                  stage: { type: Type.STRING }
+                }
               }
-            }
-          },
-          required: ['reply', 'actions']
+            },
+            required: ['type', 'payload']
+          }
         }
-      }
+      },
+      required: ['reply', 'actions']
+    };
+
+    const textResult = await callLLM({
+      provider: creds.provider,
+      key: creds.key,
+      model: creds.model,
+      systemInstruction,
+      prompt,
+      responseSchema
     });
 
-    const jsonText = response.text?.trim() || '';
-    const parsed = JSON.parse(jsonText);
+    const parsed = JSON.parse(textResult);
     res.json(parsed);
 
   } catch (error: any) {
-    console.warn('[SERVER] Assistant chat Gemini call failed or key missing. Returning simulated fallback.', error.message);
+    console.warn('[SERVER] Assistant chat AI call failed or key missing. Returning simulated fallback.', error.message);
     
     // Arabic or multilingual fallback generator
     const msg = (message || "").toLowerCase();
