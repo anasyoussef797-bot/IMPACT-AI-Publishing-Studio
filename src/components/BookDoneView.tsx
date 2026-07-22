@@ -10,6 +10,7 @@ import { CheckCircle, Award, FileText, Download, Printer, ArrowRight, ArrowLeft,
 import { motion } from 'motion/react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { generateColoringOutline } from '../utils/imageOutline';
 
 export default function BookDoneView() {
   const { t, isRtl, uiLanguage } = useTranslation();
@@ -21,8 +22,20 @@ export default function BookDoneView() {
   const isAr = uiLanguage === 'ar';
 
   // Handle direct printer action targeting ONLY book pages
-  const handlePrint = () => {
-    addNotification('info', isAr ? 'جاري تجهيز الكتاب للطباعة المباشرة...' : 'Preparing book for printer...');
+  const handlePrint = async () => {
+    addNotification('info', isAr ? 'جاري تحويل الرسومات إلى أوتلاين أسود وأبيض وتجهيز الطباعة...' : 'Converting images to black & white outlines for print...');
+
+    // Convert all illustrations to true black & white outlines
+    const outlineImages = await Promise.all(
+      currentBook.pages.map(async (p) => {
+        if (!p.illustrationUrl) return '';
+        try {
+          return await generateColoringOutline(p.illustrationUrl, 35);
+        } catch {
+          return p.illustrationUrl;
+        }
+      })
+    );
 
     const printIframe = document.createElement('iframe');
     printIframe.style.position = 'fixed';
@@ -39,13 +52,16 @@ export default function BookDoneView() {
 
     const coverHtml = `
       <div class="print-page cover-page" dir="${isRtl ? 'rtl' : 'ltr'}">
-        <div style="text-align: center; margin-top: 40px;">
-          ${currentBook.metadata.nurseryLogoUrl ? `
-            <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 3cm; max-width: 8cm; object-fit: contain; margin-bottom: 20px;" alt="شعار الروضة" />
-          ` : ''}
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-top: 20px;">
           <p style="font-size: 16px; color: #0f172a; text-transform: uppercase; font-weight: bold; letter-spacing: 2px; margin: 0;">
             ${currentBook.metadata.platformName || 'IMPACT Publishing Studio'}
           </p>
+          ${currentBook.metadata.nurseryLogoUrl ? `
+            <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 2.8cm; max-width: 7cm; object-fit: contain;" alt="شعار الروضة" />
+          ` : ''}
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
           <h1 style="font-size: 40px; font-weight: 900; margin: 16px 0 10px; color: #0f172a;">
             ${currentBook.metadata.customBookName || currentBook.metadata.title}
           </h1>
@@ -76,7 +92,7 @@ export default function BookDoneView() {
     const pagesHtml = currentBook.pages.map((p, idx) => `
       <div class="print-page" dir="${isRtl ? 'rtl' : 'ltr'}">
         
-        <!-- Header: Colored ref top right (<= 6cm), Nursery logo top center, Page badge top left -->
+        <!-- Header: Top Right = Colored Ref (<= 6cm), Top Center = Title & Badge, Top Left = Nursery Logo -->
         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; height: 6.2cm;">
           
           <!-- Top Right: Small Colored Reference Thumbnail (<= 6cm height) -->
@@ -89,19 +105,19 @@ export default function BookDoneView() {
             ` : ''}
           </div>
 
-          <!-- Top Center: Nursery / School Logo & Title -->
-          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 0 12px; margin-top: 4px;">
-            ${currentBook.metadata.nurseryLogoUrl ? `
-              <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 2.2cm; max-width: 7cm; object-fit: contain; margin-bottom: 6px;" crossOrigin="anonymous" alt="شعار الحضانة" />
-            ` : ''}
-            <span style="font-size: 13px; font-weight: 800; color: #1e293b;">${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
-          </div>
-
-          <!-- Top Left: Page Badge -->
-          <div style="display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; width: 80px;">
-            <span style="font-size: 11px; font-weight: bold; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <!-- Top Center: Book Title & Page Badge -->
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 0 12px; margin-top: 6px;">
+            <span style="font-size: 14px; font-weight: 800; color: #1e293b; margin-bottom: 6px; display: block;">${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
+            <span style="font-size: 11px; font-weight: bold; color: #475569; background: #f1f5f9; padding: 4px 12px; border-radius: 12px; border: 1px solid #e2e8f0; display: inline-block;">
               ${isAr ? `صفحة ${idx + 1}` : `Page ${idx + 1}`}
             </span>
+          </div>
+
+          <!-- Top Left: Nursery / School Logo -->
+          <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 6.5cm; flex-shrink: 0;">
+            ${currentBook.metadata.nurseryLogoUrl ? `
+              <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 2.5cm; max-width: 6.2cm; object-fit: contain;" crossOrigin="anonymous" alt="شعار الحضانة" />
+            ` : ''}
           </div>
         </div>
 
@@ -117,8 +133,8 @@ export default function BookDoneView() {
           ${p.illustrationUrl ? `
             <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 6px 0;">
               <img 
-                src="${p.illustrationUrl}" 
-                style="max-height: 13.5cm; max-width: 17.5cm; object-fit: contain; display: block; filter: grayscale(100%) contrast(500%) brightness(120%);" 
+                src="${outlineImages[idx] || p.illustrationUrl}" 
+                style="max-height: 13.5cm; max-width: 17.5cm; object-fit: contain; display: block;" 
                 crossOrigin="anonymous" 
                 alt="رسمة التلوين" 
               />
@@ -217,9 +233,21 @@ export default function BookDoneView() {
   // Handle PDF file download using jsPDF + html2canvas
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true);
-    addNotification('info', isAr ? 'جاري تحضير وإنشاء ملف PDF للكتاب...' : 'Preparing PDF file...');
+    addNotification('info', isAr ? 'جاري استخلاص خطوط الرسم وبناء ملف PDF الملون والمتناسق...' : 'Generating crisp black & white outline PDF...');
 
     try {
+      // Convert all illustrations to real line-art black & white outline Data URLs
+      const outlineImages = await Promise.all(
+        currentBook.pages.map(async (p) => {
+          if (!p.illustrationUrl) return '';
+          try {
+            return await generateColoringOutline(p.illustrationUrl, 35);
+          } catch {
+            return p.illustrationUrl;
+          }
+        })
+      );
+
       const pdf = new jsPDF({
         orientation: 'p',
         unit: 'mm',
@@ -236,11 +264,14 @@ export default function BookDoneView() {
 
       const coverHtml = `
         <div class="pdf-page" style="width: 794px; height: 1123px; padding: 50px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff;">
-          <div style="margin-top: 20px;">
-            ${currentBook.metadata.nurseryLogoUrl ? `
-              <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 100px; max-width: 300px; object-fit: contain; margin-bottom: 20px;" alt="شعار الروضة" />
-            ` : ''}
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-top: 20px;">
             <p style="font-size: 16px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase;">${currentBook.metadata.platformName || 'IMPACT Publishing Studio'}</p>
+            ${currentBook.metadata.nurseryLogoUrl ? `
+              <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 90px; max-width: 250px; object-fit: contain;" alt="شعار الروضة" />
+            ` : ''}
+          </div>
+
+          <div style="margin-top: 20px;">
             <h1 style="font-size: 42px; font-weight: 900; margin-top: 20px; margin-bottom: 10px; color: #ffffff;">${currentBook.metadata.customBookName || currentBook.metadata.title}</h1>
             <p style="font-size: 18px; color: #94a3b8;">${currentBook.metadata.subtitle || 'كتاب تلوين وتعليم أطفال متكامل'}</p>
           </div>
@@ -277,19 +308,19 @@ export default function BookDoneView() {
               ` : ''}
             </div>
 
-            <!-- Top Center: Nursery Logo & Title -->
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 0 12px; margin-top: 4px;">
-              ${currentBook.metadata.nurseryLogoUrl ? `
-                <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 80px; max-width: 260px; object-fit: contain; margin-bottom: 8px;" crossOrigin="anonymous" alt="شعار الحضانة" />
-              ` : ''}
-              <span style="font-size: 15px; font-weight: 800; color: #1e293b;">${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
-            </div>
-
-            <!-- Top Left: Page Badge -->
-            <div style="display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; width: 100px;">
-              <span style="font-size: 12px; font-weight: bold; color: #475569; background: #f1f5f9; padding: 6px 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <!-- Top Center: Book Title & Page Badge -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 0 12px; margin-top: 8px;">
+              <span style="font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 6px; display: block;">${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
+              <span style="font-size: 12px; font-weight: bold; color: #475569; background: #f1f5f9; padding: 4px 12px; border-radius: 12px; border: 1px solid #e2e8f0; display: inline-block;">
                 ${isAr ? `صفحة ${idx + 1}` : `Page ${idx + 1}`}
               </span>
+            </div>
+
+            <!-- Top Left: Nursery / School Logo -->
+            <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 230px; flex-shrink: 0;">
+              ${currentBook.metadata.nurseryLogoUrl ? `
+                <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 85px; max-width: 220px; object-fit: contain;" crossOrigin="anonymous" alt="شعار الحضانة" />
+              ` : ''}
             </div>
           </div>
 
@@ -300,12 +331,12 @@ export default function BookDoneView() {
               ${p.textContent ? `<p style="font-size: 14px; color: #475569; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
             </div>
 
-            <!-- Center Black & White Outline Image -->
+            <!-- Center Black & White Outline Image (Real outline base64 without relying on unsupported CSS filters in html2canvas) -->
             ${p.illustrationUrl ? `
               <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 8px 0;">
                 <img 
-                  src="${p.illustrationUrl}" 
-                  style="max-height: 520px; max-width: 680px; object-fit: contain; display: block; filter: grayscale(100%) contrast(500%) brightness(120%);" 
+                  src="${outlineImages[idx] || p.illustrationUrl}" 
+                  style="max-height: 520px; max-width: 680px; object-fit: contain; display: block;" 
                   crossOrigin="anonymous" 
                   alt="رسمة التلوين" 
                 />
