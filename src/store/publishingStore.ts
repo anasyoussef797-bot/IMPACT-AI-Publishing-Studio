@@ -339,7 +339,10 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
     set({ uiLanguage });
     get().addNotification('info', `Interface language switched to: ${uiLanguage.toUpperCase()}`);
   },
-  setProfessionalMode: (isProfessionalMode) => set({ isProfessionalMode }),
+  setProfessionalMode: (isProfessionalMode) => set((state) => ({ 
+    isProfessionalMode,
+    currentStage: (!isProfessionalMode && state.currentStage === 'done') ? 'workspace' : state.currentStage
+  })),
   setActivePanel: (activePanel) => set({ activePanel }),
   toggleAssetManager: (val) => set((state) => ({ showAssetManager: val !== undefined ? val : !state.showAssetManager })),
   toggleSettingsPanel: (val) => set((state) => ({ showSettingsPanel: val !== undefined ? val : !state.showSettingsPanel })),
@@ -972,9 +975,9 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
       return { allowed: true };
     }
 
-    // Guard: Composer requires Plan Review approved or chapters exists
+    // Guard: Composer requires Plan Review approved, chapters exist, or pages exist
     if (targetStage === 'composer') {
-      if (book.chapters.length < 1) {
+      if (book.chapters.length < 1 && book.pages.length < 1) {
         const msg = 'Complete the planning outline phase before composing pages.';
         get().addNotification('warning', msg);
         return { allowed: false, reason: msg };

@@ -501,7 +501,7 @@ ${currentBook.pages.map((p, i) => `   [صفحة ${i + 1}] ${p.title || 'تمري
   // Return to Simple Workspace Mode
   const handleReturnToSimpleMode = () => {
     setProfessionalMode(false);
-    navigateStage('composer');
+    navigateStage('workspace');
   };
 
   return (
