@@ -46,11 +46,16 @@ export default function SimpleWorkspaceView() {
   // Book Metadata & Layout States (Arabic-first)
   const [customBookName, setCustomBookName] = useState('');
   const [platformName, setPlatformName] = useState('');
+  const [institutionLogoUrl, setInstitutionLogoUrl] = useState('');
+  const [nurseryLogoUrl, setNurseryLogoUrl] = useState('');
   const [targetPages, setTargetPages] = useState(72);
   const [paperSize, setPaperSize] = useState<'A4' | 'A3' | 'Letter' | 'Custom'>('A4');
   const [paperWidth, setPaperWidth] = useState(21);
   const [paperHeight, setPaperHeight] = useState(29.7);
   const [paperUnit, setPaperUnit] = useState<'cm' | 'in' | 'mm'>('cm');
+
+  const instLogoInputRef = useRef<HTMLInputElement>(null);
+  const nurseryLogoInputRef = useRef<HTMLInputElement>(null);
 
   // Search Engine States
   const [searchQuery, setSearchQuery] = useState('');
@@ -173,6 +178,8 @@ export default function SimpleWorkspaceView() {
     if (currentBook) {
       setCustomBookName(currentBook.metadata.customBookName || currentBook.metadata.title || '');
       setPlatformName(currentBook.metadata.platformName || '');
+      setInstitutionLogoUrl(currentBook.metadata.institutionLogoUrl || '');
+      setNurseryLogoUrl(currentBook.metadata.nurseryLogoUrl || '');
       setTargetPages(currentBook.metadata.targetPages || 72);
       
       const size = currentBook.metadata.paperSize || 'A4';
@@ -571,6 +578,23 @@ export default function SimpleWorkspaceView() {
     }
   };
 
+  // Handle logo file upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'institution' | 'nursery') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (type === 'institution') {
+        setInstitutionLogoUrl(result);
+      } else {
+        setNurseryLogoUrl(result);
+      }
+      addNotification('success', isAr ? 'تم رفع الشعار بنجاح!' : 'Logo uploaded successfully!');
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Handle Book Level Settings & Paper Size updates
   const handleSaveBookSettings = () => {
     const dimensions = {
@@ -582,6 +606,8 @@ export default function SimpleWorkspaceView() {
     updateBookMetadata({
       customBookName,
       platformName,
+      institutionLogoUrl,
+      nurseryLogoUrl,
       targetPages: Number(targetPages),
       paperSize,
       customDimensions: dimensions as any
@@ -731,6 +757,15 @@ export default function SimpleWorkspaceView() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2.5 max-h-[580px] overflow-y-auto pr-1">
+            {/* Prominent Add Page Card placed at the top */}
+            <button
+              onClick={handleAddPage}
+              className="w-full py-3.5 px-4 border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-xl flex items-center justify-center gap-2 text-indigo-600 hover:text-indigo-800 bg-indigo-50/60 hover:bg-indigo-100/80 transition shadow-xs group"
+            >
+              <Plus className="w-5 h-5 text-indigo-600 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold font-sans">{isAr ? '➕ أضف صفحة جديدة للكتاب' : '➕ Add New Page to Book'}</span>
+            </button>
+
             {currentBook.pages.map((p) => {
               const isActive = activePage?.id === p.id;
               return (
@@ -769,14 +804,6 @@ export default function SimpleWorkspaceView() {
                 </button>
               );
             })}
-
-            <button
-              onClick={handleAddPage}
-              className="w-full h-24 border-2 border-dashed border-slate-200 hover:border-brand-300 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-brand-500 bg-slate-50/50 hover:bg-brand-50/10 transition"
-            >
-              <Plus className="w-6 h-6 mb-1.5" />
-              <span className="text-xs font-bold font-sans">{isAr ? 'أضف صفحة جديدة' : 'Add New Page'}</span>
-            </button>
           </div>
         </div>
 
@@ -1382,6 +1409,81 @@ export default function SimpleWorkspaceView() {
                       placeholder={isAr ? 'مثال: منصة أقرأ التعليمية' : 'Platform name...'}
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden text-right"
                     />
+                  </div>
+
+                  {/* 🖼️ Logos Upload Section */}
+                  <div className="border-t border-slate-100 pt-3 space-y-4">
+                    {/* Nursery / School Logo */}
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">
+                        {isAr ? '🏫 شعار الروضة / الحضانة (يظهر أعلى منتصف الصفحة):' : '🏫 Nursery / School Logo (Top Center):'}
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {nurseryLogoUrl && (
+                          <div className="w-10 h-10 border border-slate-200 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center flex-shrink-0">
+                            <img src={nurseryLogoUrl} alt="Nursery Logo" className="max-w-full max-h-full object-contain" />
+                          </div>
+                        )}
+                        <input
+                          type="text"
+                          value={nurseryLogoUrl}
+                          onChange={(e) => setNurseryLogoUrl(e.target.value)}
+                          placeholder={isAr ? 'رابط شعار الحضانة مصفوفاً...' : 'Nursery logo URL...'}
+                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden text-right"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => nurseryLogoInputRef.current?.click()}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          {isAr ? 'رفع' : 'Upload'}
+                        </button>
+                        <input
+                          ref={nurseryLogoInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleLogoUpload(e, 'nursery')}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Institution / Publisher Logo */}
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">
+                        {isAr ? '🏛️ شعار المؤسسة / الناشر (يظهر أسفل كل صفحة - أقسى 2 سم):' : '🏛️ Institution Logo (Footer - max 2cm):'}
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {institutionLogoUrl && (
+                          <div className="w-10 h-10 border border-slate-200 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center flex-shrink-0">
+                            <img src={institutionLogoUrl} alt="Institution Logo" className="max-w-full max-h-full object-contain" />
+                          </div>
+                        )}
+                        <input
+                          type="text"
+                          value={institutionLogoUrl}
+                          onChange={(e) => setInstitutionLogoUrl(e.target.value)}
+                          placeholder={isAr ? 'رابط شعار المؤسسة...' : 'Institution logo URL...'}
+                          className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden text-right"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => instLogoInputRef.current?.click()}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          {isAr ? 'رفع' : 'Upload'}
+                        </button>
+                        <input
+                          ref={instLogoInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleLogoUpload(e, 'institution')}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

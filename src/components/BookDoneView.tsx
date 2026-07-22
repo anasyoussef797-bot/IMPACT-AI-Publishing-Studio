@@ -39,54 +39,123 @@ export default function BookDoneView() {
 
     const coverHtml = `
       <div class="print-page cover-page" dir="${isRtl ? 'rtl' : 'ltr'}">
-        <div style="text-align: center; margin-top: 80px;">
-          <p style="font-size: 16px; color: #0f172a; text-transform: uppercase; font-weight: bold; letter-spacing: 2px;">${currentBook.metadata.platformName || 'IMPACT Publishing Studio'}</p>
-          <h1 style="font-size: 42px; font-weight: 900; margin: 20px 0 10px; color: #0f172a;">${currentBook.metadata.customBookName || currentBook.metadata.title}</h1>
-          <p style="font-size: 18px; color: #475569;">${currentBook.metadata.subtitle || 'كتاب تلوين وتعليم أطفال متكامل'}</p>
+        <div style="text-align: center; margin-top: 40px;">
+          ${currentBook.metadata.nurseryLogoUrl ? `
+            <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 3cm; max-width: 8cm; object-fit: contain; margin-bottom: 20px;" alt="شعار الروضة" />
+          ` : ''}
+          <p style="font-size: 16px; color: #0f172a; text-transform: uppercase; font-weight: bold; letter-spacing: 2px; margin: 0;">
+            ${currentBook.metadata.platformName || 'IMPACT Publishing Studio'}
+          </p>
+          <h1 style="font-size: 40px; font-weight: 900; margin: 16px 0 10px; color: #0f172a;">
+            ${currentBook.metadata.customBookName || currentBook.metadata.title}
+          </h1>
+          <p style="font-size: 18px; color: #475569; margin: 0;">
+            ${currentBook.metadata.subtitle || 'كتاب تلوين وتعليم أطفال متكامل'}
+          </p>
         </div>
-        <div style="border: 4px dashed #0f172a; border-radius: 24px; padding: 50px; margin: 60px auto; text-align: center; max-width: 400px; background: #f8fafc;">
-          <span style="font-size: 72px;">🎨📖</span>
-          <p style="font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 16px;">جاهز للتلوين والإبداع</p>
+
+        <div style="border: 4px dashed #0f172a; border-radius: 24px; padding: 40px; margin: 40px auto; text-align: center; max-width: 400px; background: #f8fafc;">
+          <span style="font-size: 64px;">🎨📖</span>
+          <p style="font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 16px;">عالم من الإبداع والتلوين الممتع</p>
         </div>
-        <div style="text-align: center; font-size: 13px; color: #64748b; margin-top: 60px;">
-          <span>المرحلة العمرية: ${currentBook.metadata.targetAge || '3 - 8 سنوات'} | المقاس: ${currentBook.metadata.paperSize || 'A4'}</span>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #64748b; margin-top: 40px; border-top: 2px solid #e2e8f0; padding-top: 16px;">
+          <div style="display: flex; items-align: center; gap: 8px;">
+            ${currentBook.metadata.institutionLogoUrl ? `
+              <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 2cm; max-width: 4.5cm; object-fit: contain;" alt="شعار المؤسسة" />
+            ` : ''}
+            <span style="font-weight: 700; color: #334155; align-self: center;">${currentBook.metadata.platformName || 'منصة أقرأ التعليمية'}</span>
+          </div>
+          <div>
+            <span>المرحلة العمرية: ${currentBook.metadata.targetAge || '3 - 8 سنوات'} | المقاس: ${currentBook.metadata.paperSize || 'A4'}</span>
+          </div>
         </div>
       </div>
     `;
 
     const pagesHtml = currentBook.pages.map((p, idx) => `
       <div class="print-page" dir="${isRtl ? 'rtl' : 'ltr'}">
-        <div class="header">
-          <span>📖 ${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
-          <span>صفحة ${idx + 1} من ${currentBook.pages.length}</span>
+        
+        <!-- Header: Colored ref top right (<= 6cm), Nursery logo top center, Page badge top left -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; height: 6.2cm;">
+          
+          <!-- Top Right: Small Colored Reference Thumbnail (<= 6cm height) -->
+          <div style="display: flex; flex-direction: column; align-items: flex-start; width: 6cm; flex-shrink: 0;">
+            ${p.illustrationUrl ? `
+              <div style="border: 2px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                <img src="${p.illustrationUrl}" style="max-height: 5.2cm; max-width: 5.5cm; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
+              </div>
+              <span style="font-size: 9px; font-weight: bold; color: #64748b; margin-top: 3px;">🎨 ${isAr ? 'دليل التلوين' : 'Color Guide'}</span>
+            ` : ''}
+          </div>
+
+          <!-- Top Center: Nursery / School Logo & Title -->
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 0 12px; margin-top: 4px;">
+            ${currentBook.metadata.nurseryLogoUrl ? `
+              <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 2.2cm; max-width: 7cm; object-fit: contain; margin-bottom: 6px;" crossOrigin="anonymous" alt="شعار الحضانة" />
+            ` : ''}
+            <span style="font-size: 13px; font-weight: 800; color: #1e293b;">${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
+          </div>
+
+          <!-- Top Left: Page Badge -->
+          <div style="display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; width: 80px;">
+            <span style="font-size: 11px; font-weight: bold; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 12px; border: 1px solid #e2e8f0;">
+              ${isAr ? `صفحة ${idx + 1}` : `Page ${idx + 1}`}
+            </span>
+          </div>
         </div>
 
-        <div class="content">
-          <h2>${p.title || 'صفحة تلوين'}</h2>
-          ${p.textContent ? `<p class="desc">${p.textContent}</p>` : ''}
+        <!-- Body: Coloring Outline Image in Center above Tracing Letters -->
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center;">
           
+          <div>
+            ${p.title ? `<h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">${p.title}</h2>` : ''}
+            ${p.textContent ? `<p style="font-size: 13px; color: #475569; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
+          </div>
+
+          <!-- Center Black & White Outline Image for Coloring -->
           ${p.illustrationUrl ? `
-            <div class="img-container">
-              <img src="${p.illustrationUrl}" crossOrigin="anonymous" />
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 6px 0;">
+              <img 
+                src="${p.illustrationUrl}" 
+                style="max-height: 13.5cm; max-width: 17.5cm; object-fit: contain; display: block; filter: grayscale(100%) contrast(500%) brightness(120%);" 
+                crossOrigin="anonymous" 
+                alt="رسمة التلوين" 
+              />
             </div>
           ` : ''}
 
+          <!-- Character Tracing Box directly below the Outline Image -->
           ${p.activity && p.activity.type === 'tracing' ? `
-            <div class="tracing-box">
-              <span class="tracing-title">✍️ تتبع كتابة وتلوين الحرف:</span>
-              <div class="tracing-chars">
-                <span class="char">${p.activity.contentData?.character || 'أ'}</span>
-                <span class="char dim">${p.activity.contentData?.character || 'أ'}</span>
-                <span class="char faint">${p.activity.contentData?.character || 'أ'}</span>
+            <div style="width: 92%; border: 2.5px dashed #0f172a; border-radius: 14px; padding: 8px 16px; background: #f8fafc; margin-top: 6px;">
+              <span style="font-size: 11px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 2px;">✍️ ${isAr ? 'تتبع خطوط الحرف ولونه:' : 'Trace lines & color:'}</span>
+              <div style="display: flex; justify-content: center; align-items: center; gap: 32px; font-family: monospace;">
+                <span style="font-size: 46px; font-weight: 900; color: #1e293b; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+                <span style="font-size: 46px; font-weight: 900; color: #94a3b8; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+                <span style="font-size: 46px; font-weight: 900; color: #cbd5e1; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
               </div>
             </div>
           ` : ''}
         </div>
 
-        <div class="footer">
-          <span>${currentBook.metadata.platformName || 'IMPACT Publishing'}</span>
-          <span>صفحة ${idx + 1}</span>
+        <!-- Footer: Platform Name + Institution Logo (max 2cm) + Page Number -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #e2e8f0; padding-top: 8px; margin-top: 8px; font-size: 11px; color: #64748b;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${currentBook.metadata.institutionLogoUrl ? `
+              <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 1.8cm; max-width: 4cm; object-fit: contain;" crossOrigin="anonymous" alt="شعار المؤسسة" />
+            ` : ''}
+            <span style="font-weight: 800; color: #334155; align-self: center;">${currentBook.metadata.platformName || 'منصة أقرأ التعليمية'}</span>
+          </div>
+
+          <div style="font-weight: 600; color: #64748b;">
+            <span>${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
+          </div>
+
+          <div style="font-weight: 800; color: #0f172a;">
+            <span>${isAr ? `صفحة ${idx + 1} من ${currentBook.pages.length}` : `Page ${idx + 1} of ${currentBook.pages.length}`}</span>
+          </div>
         </div>
+
       </div>
     `).join('');
 
@@ -100,97 +169,29 @@ export default function BookDoneView() {
         <style>
           @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 0; /* Prevents browser print header/footer time, URL, date */
           }
-          body {
+          html, body {
             margin: 0;
             padding: 0;
-            font-family: system-ui, -apple-system, sans-serif;
             background: #ffffff;
             color: #0f172a;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           .print-page {
             page-break-after: always;
             page-break-inside: avoid;
-            height: 98vh;
+            width: 210mm;
+            height: 297mm;
+            padding: 10mm 12mm 10mm 12mm;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 20px;
-          }
-          .header {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 2px solid #0f172a;
-            padding-bottom: 8px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #334155;
-          }
-          .content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-          }
-          h2 {
-            font-size: 24px;
-            margin: 8px 0;
-            color: #0f172a;
-          }
-          .desc {
-            font-size: 15px;
-            color: #475569;
-            margin-bottom: 16px;
-          }
-          .img-container img {
-            max-width: 100%;
-            max-height: 520px;
-            object-fit: contain;
-            margin: 0 auto;
-            display: block;
-          }
-          .tracing-box {
-            margin-top: 16px;
-            padding: 12px;
-            border: 3px dashed #0f172a;
-            border-radius: 12px;
-            width: 85%;
-            background: #f8fafc;
-          }
-          .tracing-title {
-            font-size: 13px;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 6px;
-          }
-          .tracing-chars {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-          }
-          .char {
-            font-size: 48px;
-            font-weight: 900;
-            color: #475569;
-            text-decoration: line-through;
-          }
-          .char.dim {
-            color: #94a3b8;
-          }
-          .char.faint {
-            color: #cbd5e1;
-          }
-          .footer {
-            border-top: 1px solid #e2e8f0;
-            padding-top: 8px;
-            font-size: 11px;
-            color: #94a3b8;
-            display: flex;
-            justify-content: space-between;
+            background: #ffffff;
+            position: relative;
           }
         </style>
       </head>
@@ -234,53 +235,112 @@ export default function BookDoneView() {
       pdfContainer.dir = isRtl ? 'rtl' : 'ltr';
 
       const coverHtml = `
-        <div class="pdf-page" style="width: 794px; height: 1123px; padding: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff;">
-          <div style="margin-top: 40px;">
+        <div class="pdf-page" style="width: 794px; height: 1123px; padding: 50px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff;">
+          <div style="margin-top: 20px;">
+            ${currentBook.metadata.nurseryLogoUrl ? `
+              <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 100px; max-width: 300px; object-fit: contain; margin-bottom: 20px;" alt="شعار الروضة" />
+            ` : ''}
             <p style="font-size: 16px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase;">${currentBook.metadata.platformName || 'IMPACT Publishing Studio'}</p>
             <h1 style="font-size: 42px; font-weight: 900; margin-top: 20px; margin-bottom: 10px; color: #ffffff;">${currentBook.metadata.customBookName || currentBook.metadata.title}</h1>
             <p style="font-size: 18px; color: #94a3b8;">${currentBook.metadata.subtitle || 'كتاب تلوين وتعليم أطفال متكامل'}</p>
           </div>
+
           <div style="border: 4px dashed #38bdf8; border-radius: 24px; padding: 40px; margin: 40px auto; max-width: 500px; background: rgba(255,255,255,0.05);">
             <span style="font-size: 64px;">🎨📖</span>
             <p style="font-size: 16px; color: #e2e8f0; margin-top: 20px;">عالم من الإبداع والتلوين للأطفال</p>
           </div>
-          <div style="margin-bottom: 20px; font-size: 14px; color: #64748b; border-top: 1px solid #334155; padding-top: 20px;">
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 14px; color: #64748b; border-top: 1px solid #334155; padding-top: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              ${currentBook.metadata.institutionLogoUrl ? `
+                <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 60px; max-width: 180px; object-fit: contain;" alt="شعار المؤسسة" />
+              ` : ''}
+              <span style="color: #cbd5e1; font-weight: bold;">${currentBook.metadata.platformName || 'منصة أقرأ التعليمية'}</span>
+            </div>
             <span>المرحلة العمرية: ${currentBook.metadata.targetAge || '3 - 8 سنوات'} | المقاس: ${currentBook.metadata.paperSize || 'A4'}</span>
           </div>
         </div>
       `;
 
       const pagesHtml = currentBook.pages.map((p, idx) => `
-        <div class="pdf-page" style="width: 794px; height: 1123px; padding: 50px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0;">
-          <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; font-size: 14px; font-weight: bold; color: #475569;">
-            <span>📖 ${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
-            <span>صفحة ${idx + 1} من ${currentBook.pages.length}</span>
+        <div class="pdf-page" style="width: 794px; height: 1123px; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0;">
+          
+          <!-- Header Area -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; height: 210px;">
+            <!-- Top Right: Colored Reference Image (max height 210px / <= 6cm) -->
+            <div style="display: flex; flex-direction: column; align-items: flex-start; width: 210px; flex-shrink: 0;">
+              ${p.illustrationUrl ? `
+                <div style="border: 2px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                  <img src="${p.illustrationUrl}" style="max-height: 180px; max-width: 200px; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
+                </div>
+                <span style="font-size: 10px; font-weight: bold; color: #64748b; margin-top: 3px;">🎨 ${isAr ? 'دليل التلوين' : 'Color Guide'}</span>
+              ` : ''}
+            </div>
+
+            <!-- Top Center: Nursery Logo & Title -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 0 12px; margin-top: 4px;">
+              ${currentBook.metadata.nurseryLogoUrl ? `
+                <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 80px; max-width: 260px; object-fit: contain; margin-bottom: 8px;" crossOrigin="anonymous" alt="شعار الحضانة" />
+              ` : ''}
+              <span style="font-size: 15px; font-weight: 800; color: #1e293b;">${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
+            </div>
+
+            <!-- Top Left: Page Badge -->
+            <div style="display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; width: 100px;">
+              <span style="font-size: 12px; font-weight: bold; color: #475569; background: #f1f5f9; padding: 6px 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                ${isAr ? `صفحة ${idx + 1}` : `Page ${idx + 1}`}
+              </span>
+            </div>
           </div>
 
-          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <h2 style="font-size: 26px; font-weight: bold; margin-bottom: 10px; color: #0f172a;">${p.title || 'صفحة تلوين'}</h2>
-            ${p.textContent ? `<p style="font-size: 16px; color: #334155; margin-bottom: 20px; line-height: 1.6;">${p.textContent}</p>` : ''}
-            
+          <!-- Content Body -->
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; padding: 10px 0;">
+            <div>
+              ${p.title ? `<h2 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">${p.title}</h2>` : ''}
+              ${p.textContent ? `<p style="font-size: 14px; color: #475569; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
+            </div>
+
+            <!-- Center Black & White Outline Image -->
             ${p.illustrationUrl ? `
-              <div style="margin: 10px auto; max-height: 580px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                <img src="${p.illustrationUrl}" style="max-width: 650px; max-height: 550px; object-fit: contain;" crossOrigin="anonymous" />
+              <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 8px 0;">
+                <img 
+                  src="${p.illustrationUrl}" 
+                  style="max-height: 520px; max-width: 680px; object-fit: contain; display: block; filter: grayscale(100%) contrast(500%) brightness(120%);" 
+                  crossOrigin="anonymous" 
+                  alt="رسمة التلوين" 
+                />
               </div>
             ` : ''}
 
+            <!-- Tracing Box directly below Outline Image -->
             ${p.activity && p.activity.type === 'tracing' ? `
-              <div style="margin-top: 15px; padding: 15px; border: 3px dashed #0f172a; border-radius: 16px; background: #f8fafc; width: 85%;">
-                <span style="font-size: 14px; font-weight: bold; color: #0f172a; display: block; margin-bottom: 8px;">✍️ تتبع كتابة وتلوين الحرف:</span>
-                <div style="display: flex; justify-content: center; gap: 30px;">
-                  <span style="font-size: 56px; font-weight: 900; letter-spacing: 16px; color: #475569; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
-                  <span style="font-size: 56px; font-weight: 900; letter-spacing: 16px; color: #94a3b8; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+              <div style="width: 92%; border: 2.5px dashed #0f172a; border-radius: 16px; padding: 10px 16px; background: #f8fafc; margin-top: 8px;">
+                <span style="font-size: 12px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 4px;">✍️ ${isAr ? 'تتبع خطوط الحرف ولونه:' : 'Trace lines & color:'}</span>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 32px; font-family: monospace;">
+                  <span style="font-size: 52px; font-weight: 900; color: #1e293b; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+                  <span style="font-size: 52px; font-weight: 900; color: #94a3b8; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+                  <span style="font-size: 52px; font-weight: 900; color: #cbd5e1; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
                 </div>
               </div>
             ` : ''}
           </div>
 
-          <div style="border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between;">
-            <span>${currentBook.metadata.platformName || 'IMPACT Publishing'}</span>
-            <span>صفحة ${idx + 1}</span>
+          <!-- Footer Area -->
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 12px; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${currentBook.metadata.institutionLogoUrl ? `
+                <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 60px; max-width: 160px; object-fit: contain;" crossOrigin="anonymous" alt="شعار المؤسسة" />
+              ` : ''}
+              <span style="font-weight: 800; color: #334155; align-self: center;">${currentBook.metadata.platformName || 'منصة أقرأ التعليمية'}</span>
+            </div>
+
+            <div style="font-weight: 600; color: #64748b;">
+              <span>${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
+            </div>
+
+            <div style="font-weight: 800; color: #0f172a;">
+              <span>${isAr ? `صفحة ${idx + 1} من ${currentBook.pages.length}` : `Page ${idx + 1} of ${currentBook.pages.length}`}</span>
+            </div>
           </div>
         </div>
       `).join('');
