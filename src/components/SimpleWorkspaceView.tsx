@@ -10,7 +10,7 @@ import {
   BookOpen, Plus, Trash2, Printer, Sparkles, Image as ImageIcon, Upload, 
   ChevronLeft, ChevronRight, PenTool, Layout, Wand2, Type, Check,
   AlertCircle, Star, Palette, HelpCircle, ArrowLeftRight, Search, 
-  RefreshCw, Scissors, Settings
+  RefreshCw, Scissors, Settings, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -54,11 +54,22 @@ export default function SimpleWorkspaceView() {
 
   // Search Engine States
   const [searchQuery, setSearchQuery] = useState('');
+  const [directImageUrl, setDirectImageUrl] = useState('');
   const [isSearchingWeb, setIsSearchingWeb] = useState(false);
   const [webSearchResults, setWebSearchResults] = useState<Array<{ name: string; url: string; prompt: string }>>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isAr = uiLanguage === 'ar';
+
+  const handleApplyDirectUrl = () => {
+    if (!directImageUrl.trim() || !activePage) return;
+    updatePage(activePage.id, {
+      illustrationUrl: directImageUrl.trim(),
+      layoutType: 'coloring'
+    });
+    setDirectImageUrl('');
+    addNotification('success', isAr ? 'تمت إضافة الصورة من الرابط المباشر بنجاح!' : 'Image added successfully!');
+  };
 
   // Kids smart outline & color palette states
   const [outlineDataUrl, setOutlineDataUrl] = useState<string | null>(null);
@@ -218,14 +229,9 @@ export default function SimpleWorkspaceView() {
     }
   }, [selectedPageId, activePage]);
 
-  // Kids smart outline extractor effect with CORS-safe canvas drawing
+  // Kids smart outline extractor & dynamic color palette analyzer effect
   useEffect(() => {
     if (!activePage || !activePage.illustrationUrl) {
-      setOutlineDataUrl(null);
-      return;
-    }
-
-    if (!useSmartOutline) {
       setOutlineDataUrl(null);
       return;
     }
@@ -276,31 +282,129 @@ export default function SimpleWorkspaceView() {
         const data = imgData.data;
         const len = data.length;
 
+        // DYNAMIC COLOR PALETTE ANALYSIS: Extract 5 dominant vibrant colors from the image
+        try {
+          const colorCounts: { [hex: string]: number } = {};
+          for (let i = 0; i < len; i += 32) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            if (a < 128) continue;
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            if (lum > 235 || lum < 20) continue; // Skip near white background or near black stroke lines
+            const qr = Math.round(r / 32) * 32;
+            const qg = Math.round(g / 32) * 32;
+            const qb = Math.round(b / 32) * 32;
+            const hex = `#${((1 << 24) + (qr << 16) + (qg << 8) + qb).toString(16).slice(1)}`;
+            colorCounts[hex] = (colorCounts[hex] || 0) + 1;
+          }
+          const sorted = Object.entries(colorCounts)
+            .sort((a, b) => b[1] - a[1])
+            .map(entry => entry[0]);
+
+          if (sorted.length >= 2) {
+            const defaults = ['#e11d48', '#2563eb', '#16a34a', '#ca8a04', '#ea580c'];
+            const extracted = sorted.slice(0, 5);
+            while (extracted.length < 5) {
+              const fallback = defaults[extracted.length];
+              if (!extracted.includes(fallback)) extracted.push(fallback);
+              else extracted.push('#' + Math.floor(Math.random() * 16777215).toString(16));
+            }
+            if (isMounted) {
+              setColorsUsed(extracted);
+              if (activePage) {
+                updatePage(activePage.id, { colorsUsed: extracted });
+              }
+            }
+          }
+        } catch (colorErr) {
+          console.warn('Color extraction warning:', colorErr);
+        }
+
+        if (!useSmartOutline) {
+          if (isMounted) {
+            setOutlineDataUrl(null);
+            setIsProcessingOutline(false);
+          }
+          return;
+        }
+
+        // SMART OUTLINE EXTRACTOR (3-Pass Gaussian + Sobel + Despeckle & Gap Closure)
         // Grayscale conversion
         const gray = new Uint8ClampedArray(w * h);
         for (let i = 0; i < len; i += 4) {
           gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
         }
 
-        const output = ctx.createImageData(w, h);
-        const outData = output.data;
-
-        // Perform gradient difference thresholding
+        // Pass 1: 3x3 Weighted Gaussian Smoothing (eliminates speckle noise/dots)
+        const smoothed = new Uint8ClampedArray(w * h);
         for (let y = 1; y < h - 1; y++) {
           for (let x = 1; x < w - 1; x++) {
             const idx = y * w + x;
+            const sum = 
+              gray[(y - 1) * w + (x - 1)] + 2 * gray[(y - 1) * w + x] + gray[(y - 1) * w + (x + 1)] +
+              2 * gray[y * w + (x - 1)] + 4 * gray[idx] + 2 * gray[y * w + (x + 1)] +
+              gray[(y + 1) * w + (x - 1)] + 2 * gray[(y + 1) * w + x] + gray[(y + 1) * w + (x + 1)];
+            smoothed[idx] = sum / 16;
+          }
+        }
 
-            const val = gray[idx];
-            const right = gray[idx + 1];
-            const down = gray[idx + w];
+        // Pass 2: Sobel Edge Magnitude Calculation
+        const edgeBinary = new Uint8ClampedArray(w * h);
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const idx = y * w + x;
+            const val = smoothed[idx];
 
-            const diffX = Math.abs(val - right);
-            const diffY = Math.abs(val - down);
-            const grad = diffX + diffY;
+            if (val < 75) {
+              edgeBinary[idx] = 1; // Pure black stroke
+              continue;
+            }
+            if (val > 215) {
+              edgeBinary[idx] = 0; // Pure white background
+              continue;
+            }
 
-            const isEdge = grad > outlineThreshold;
-            const color = isEdge ? 0 : 255;
+            const gx = 
+              -1 * smoothed[(y - 1) * w + (x - 1)] + 1 * smoothed[(y - 1) * w + (x + 1)] +
+              -2 * smoothed[y * w + (x - 1)] + 2 * smoothed[y * w + (x + 1)] +
+              -1 * smoothed[(y + 1) * w + (x - 1)] + 1 * smoothed[(y + 1) * w + (x + 1)];
 
+            const gy = 
+              -1 * smoothed[(y - 1) * w + (x - 1)] - 2 * smoothed[(y - 1) * w + x] - 1 * smoothed[(y - 1) * w + (x + 1)] +
+              1 * smoothed[(y + 1) * w + (x - 1)] + 2 * smoothed[(y + 1) * w + x] + 1 * smoothed[(y + 1) * w + (x + 1)];
+
+            const grad = Math.sqrt(gx * gx + gy * gy);
+            edgeBinary[idx] = grad > (outlineThreshold * 1.6) ? 1 : 0;
+          }
+        }
+
+        // Pass 3: Despeckle (Remove isolated dots) + Gap Closure (Seal open lines)
+        const output = ctx.createImageData(w, h);
+        const outData = output.data;
+
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const idx = y * w + x;
+            const val = edgeBinary[idx];
+
+            let neighbors = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                if (edgeBinary[(y + dy) * w + (x + dx)] === 1) neighbors++;
+              }
+            }
+
+            let isLine = false;
+            if (val === 1) {
+              isLine = neighbors >= 2; // Removes single isolated dot specks
+            } else {
+              isLine = neighbors >= 5; // Closes small open gaps
+            }
+
+            const color = isLine ? 0 : 255;
             const outIdx = idx * 4;
             outData[outIdx] = color;
             outData[outIdx + 1] = color;
@@ -330,7 +434,7 @@ export default function SimpleWorkspaceView() {
           setIsProcessingOutline(false);
         }
       } catch (e) {
-        console.warn('Canvas outlining failed (likely CORS). Falling back to CSS filters.', e);
+        console.warn('Canvas processing failed (likely CORS). Falling back to CSS filters.', e);
         if (isMounted) {
           setOutlineDataUrl(null);
           setIsProcessingOutline(false);
@@ -783,18 +887,18 @@ export default function SimpleWorkspaceView() {
 
                   {/* Optional Dash Alphabet Tracing Guides */}
                   {activePage.activity && activePage.activity.type === 'tracing' && (
-                    <div className="p-2 bg-slate-50 border border-dashed border-slate-200 rounded-lg text-center mb-1">
-                      <span className="text-[8px] font-mono font-bold text-brand-600 block mb-0.5 uppercase tracking-wider">
-                        {isAr ? '✍️ تدريب تتبع خطوط الحروف للأطفال' : '✍️ Trace the Letter Practice'}
+                    <div className="p-3 bg-brand-50/20 border-2 border-dashed border-brand-300 rounded-xl text-center my-2 select-none">
+                      <span className="text-[10px] font-mono font-extrabold text-brand-600 block mb-1 uppercase tracking-wider">
+                        {isAr ? '✍️ مستشار تتبع خطوط الحروف (حجم كبير للتلوين والتتبع)' : '✍️ Large Practice Tracing Character'}
                       </span>
-                      <div className="h-8 border border-dashed border-slate-300 rounded bg-white flex items-center justify-center gap-4">
-                        <span className="text-xl font-display font-black text-slate-300 tracking-widest line-through select-none">
+                      <div className="h-16 md:h-20 border-2 border-dashed border-slate-300 rounded-xl bg-white flex items-center justify-center gap-6 px-4">
+                        <span className="text-4xl md:text-5xl font-display font-black text-slate-400 tracking-[0.2em] line-through select-none">
                           {activePage.activity.contentData?.character || 'أ'}
                         </span>
-                        <span className="text-xl font-display font-black text-slate-300/40 tracking-widest line-through select-none">
+                        <span className="text-4xl md:text-5xl font-display font-black text-slate-300/60 tracking-[0.2em] line-through select-none">
                           {activePage.activity.contentData?.character || 'أ'}
                         </span>
-                        <span className="text-xl font-display font-black text-slate-300/20 tracking-widest line-through select-none">
+                        <span className="text-4xl md:text-5xl font-display font-black text-slate-300/30 tracking-[0.2em] line-through select-none">
                           {activePage.activity.contentData?.character || 'أ'}
                         </span>
                       </div>
@@ -949,8 +1053,8 @@ export default function SimpleWorkspaceView() {
                         </div>
                       </div>
 
-                      {/* Searchable Web Gallery Section (عدسة بحث مطورة) */}
-                      <div className="space-y-2 pt-1 border-t border-slate-100">
+                      {/* Searchable Web Gallery Section (عدسة بحث مطورة + بنترست) */}
+                      <div className="space-y-3 pt-1 border-t border-slate-100">
                         <span className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mt-2">
                           {isAr ? 'الخيار الثالث: ابحث واجلب أي صورة من الويب والشبكة:' : 'Option 3: Search and bring any illustration from the web:'}
                         </span>
@@ -974,6 +1078,38 @@ export default function SimpleWorkspaceView() {
                             {isAr ? 'بحث' : 'Search'}
                           </button>
                         </form>
+
+                        {/* Pinterest Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const q = searchQuery.trim() || 'رسومات تلوين أطفال';
+                            window.open(`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(q + ' coloring page')}`, '_blank');
+                          }}
+                          className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <span>📌 {isAr ? `فتح Pinterest وإكمال البحث عن "${searchQuery || 'تلوين'}"` : 'Open & Search on Pinterest'}</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Direct URL paste from Pinterest */}
+                        <div className="flex gap-1.5 pt-1">
+                          <input
+                            type="url"
+                            value={directImageUrl}
+                            onChange={(e) => setDirectImageUrl(e.target.value)}
+                            placeholder={isAr ? 'أو الصق رابط صورة مباشرة من بنترست/الويب...' : 'Or paste direct image URL from Pinterest...'}
+                            className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-[11px] bg-slate-50/50 text-right"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleApplyDirectUrl}
+                            disabled={!directImageUrl.trim()}
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-200 text-white text-xs font-bold rounded-lg transition"
+                          >
+                            {isAr ? 'إضافة' : 'Add'}
+                          </button>
+                        </div>
 
                         {/* Search results list / Curated defaults */}
                         <div className="max-h-40 overflow-y-auto pt-1.5 pr-0.5 space-y-1">
@@ -1000,7 +1136,7 @@ export default function SimpleWorkspaceView() {
                             </div>
                           ) : searchQuery.trim() ? (
                             <p className="text-[10px] text-slate-400 text-center py-4">
-                              {isAr ? 'اضغط على زر "بحث" للبحث وجلب نتائج تلوين حية من الشبكة...' : 'Click the "Search" button to fetch live outlines from the network...'}
+                              {isAr ? 'اضغط على زر "بحث" للجلب أو أعد فتح Pinterest بالزر الأحمر...' : 'Click Search or use the Pinterest button above...'}
                             </p>
                           ) : (
                             // Default gallery list (6 templates)
@@ -1035,10 +1171,10 @@ export default function SimpleWorkspaceView() {
                         {isAr ? 'لوحة ألوان الطفل المقترحة' : 'Suggested Kid Color Palette'}
                         <Palette className="w-4 h-4 text-brand-500" />
                       </h4>
-                      <p className="text-[10px] text-slate-400 leading-normal text-right">
+                      <p className="text-[10px] text-slate-500 leading-normal text-right">
                         {isAr 
-                          ? 'اختر 5 ألوان تظهر أسفل الصفحة لتوجيه الطفل في تلوين الرسمة بنجاح.' 
-                          : 'Choose 5 guide colors that appear at the bottom of the page to help the child color.'}
+                          ? '✨ تم تحليل الصورة المرفقة واستخلاص ألوانها الأساسية تلقائياً لتوجيه الطفل أثناء التلوين.' 
+                          : '✨ Colors are dynamically extracted from the uploaded image to guide the child.'}
                       </p>
 
                       <div className="grid grid-cols-5 gap-2" dir="ltr">
