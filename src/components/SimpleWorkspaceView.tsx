@@ -10,12 +10,14 @@ import {
   BookOpen, Plus, Trash2, Printer, Sparkles, Image as ImageIcon, Upload, 
   ChevronLeft, ChevronRight, PenTool, Layout, Wand2, Type, Check,
   AlertCircle, Star, Palette, HelpCircle, ArrowLeftRight, Search, 
-  RefreshCw, Scissors, Settings, ExternalLink
+  RefreshCw, Scissors, Settings, ExternalLink, FileUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import PdfImportModal from './PdfImportModal';
 
 export default function SimpleWorkspaceView() {
   const { t, isRtl, uiLanguage } = useTranslation();
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const { 
     currentBook, 
     addBlankPage, 
@@ -725,7 +727,16 @@ export default function SimpleWorkspaceView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setIsPdfModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all shadow-xs"
+            title={isAr ? 'استيراد كتاب PDF وتعديل اللوجو والعنوان والطباعة' : 'Import & edit PDF book'}
+          >
+            <FileUp className="w-4 h-4" />
+            {isAr ? '📂 استيراد وتعديل كتاب PDF' : '📂 Import & Edit PDF'}
+          </button>
+
           <button
             onClick={() => setProfessionalMode(true)}
             className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all"
@@ -1575,6 +1586,11 @@ export default function SimpleWorkspaceView() {
         </div>
 
       </div>
+
+      <PdfImportModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+      />
 
     </div>
   );
