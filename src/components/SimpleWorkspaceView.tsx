@@ -905,25 +905,6 @@ export default function SimpleWorkspaceView() {
                     </div>
                   )}
 
-                  {/* Children's Color Palette Guide */}
-                  <div className="flex flex-col items-center justify-center gap-1 my-1.5 border-t border-slate-100 pt-1.5 select-none" dir="rtl">
-                    <span className="text-[7.5px] font-sans font-extrabold text-slate-400 block uppercase tracking-wider mb-0.5">
-                      {isAr ? '🎨 الألوان المقترحة لتلوين الرسمة:' : '🎨 Suggested Crayon Colors:'}
-                    </span>
-                    <div className="flex items-center justify-center gap-3">
-                      {colorsUsed.map((color, index) => (
-                        <div key={index} className="flex flex-col items-center gap-0.5">
-                          <div 
-                            className="w-5.5 h-5.5 rounded-full border-1.5 border-slate-200 shadow-xs transition-transform hover:scale-110 cursor-pointer"
-                            style={{ backgroundColor: color }}
-                            title={color}
-                          />
-                          <span className="text-[6.5px] font-mono text-slate-400 font-bold select-all">{color}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                 </div>
               </div>
 
@@ -1045,9 +1026,9 @@ export default function SimpleWorkspaceView() {
                           <button
                             onClick={handleGenerateAI}
                             disabled={isAiGenerating || !aiPrompt.trim()}
-                            className="px-3 py-2 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1"
+                            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1 shadow-sm"
                           >
-                            <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                             {isAr ? 'توليد' : 'Create'}
                           </button>
                         </div>
@@ -1161,63 +1142,6 @@ export default function SimpleWorkspaceView() {
                               ))}
                             </div>
                           )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Suggested Kid Color Palette */}
-                    <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4">
-                      <h4 className="text-xs uppercase font-mono font-bold text-slate-500 tracking-wider flex items-center justify-end gap-1.5 border-b border-slate-100 pb-2.5">
-                        {isAr ? 'لوحة ألوان الطفل المقترحة' : 'Suggested Kid Color Palette'}
-                        <Palette className="w-4 h-4 text-brand-500" />
-                      </h4>
-                      <p className="text-[10px] text-slate-500 leading-normal text-right">
-                        {isAr 
-                          ? '✨ تم تحليل الصورة المرفقة واستخلاص ألوانها الأساسية تلقائياً لتوجيه الطفل أثناء التلوين.' 
-                          : '✨ Colors are dynamically extracted from the uploaded image to guide the child.'}
-                      </p>
-
-                      <div className="grid grid-cols-5 gap-2" dir="ltr">
-                        {Array.from({ length: 5 }).map((_, idx) => {
-                          const color = colorsUsed[idx] || '#cccccc';
-                          return (
-                            <div key={idx} className="flex flex-col items-center gap-1 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                              <input
-                                type="color"
-                                value={color}
-                                onChange={(e) => handleColorChange(idx, e.target.value)}
-                                className="w-8 h-8 rounded-full border border-slate-300 cursor-pointer p-0 overflow-hidden"
-                              />
-                              <span className="text-[8px] font-mono text-slate-500 select-all">
-                                {color}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Quick Preset Palettes */}
-                      <div className="space-y-1">
-                        <span className="block text-[9px] font-bold text-slate-400 text-right">
-                          {isAr ? 'لوحات ألوان جاهزة سريعة:' : 'Quick Presets:'}
-                        </span>
-                        <div className="flex flex-wrap gap-1 justify-end">
-                          {[
-                            { name: isAr ? 'أساسي' : 'Primary', colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'] },
-                            { name: isAr ? 'غابة' : 'Forest', colors: ['#2e7d32', '#4caf50', '#81c784', '#a1887f', '#8d6e63'] },
-                            { name: isAr ? 'فضاء' : 'Cosmic', colors: ['#1a237e', '#3f51b5', '#e91e63', '#9c27b0', '#00bcd4'] },
-                            { name: isAr ? 'باستيل' : 'Pastel', colors: ['#ffb7b2', '#ffdac1', '#e2f0cb', '#b5ead7', '#c7ceea'] },
-                            { name: isAr ? 'دافئ' : 'Sunset', colors: ['#e64a19', '#f57c00', '#ffb74d', '#ffe082', '#ff8a80'] }
-                          ].map((preset, pIdx) => (
-                            <button
-                              key={pIdx}
-                              type="button"
-                              onClick={() => handleApplyPresetPalette(preset.colors)}
-                              className="px-2 py-1 bg-slate-100 hover:bg-brand-50 text-[9px] font-medium rounded-md border border-slate-200 hover:border-brand-300 text-slate-600 hover:text-brand-600 transition"
-                            >
-                              {preset.name}
-                            </button>
-                          ))}
                         </div>
                       </div>
                     </div>
@@ -1341,7 +1265,7 @@ export default function SimpleWorkspaceView() {
                     {/* Save All Changes */}
                     <button
                       onClick={handleSaveChanges}
-                      className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:scale-[1.01]"
+                      className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:scale-[1.01]"
                     >
                       {isAr ? '💾 حفظ التعديلات وتحديث الصفحة' : '💾 Save Changes & Update Page'}
                     </button>
@@ -1538,7 +1462,7 @@ export default function SimpleWorkspaceView() {
                 {/* Save All Book Level Configurations */}
                 <button
                   onClick={handleSaveBookSettings}
-                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:scale-[1.01]"
+                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:scale-[1.01]"
                 >
                   {isAr ? '💾 حفظ المقاسات وإعدادات المنهج' : '💾 Save Print & Curriculum Settings'}
                 </button>

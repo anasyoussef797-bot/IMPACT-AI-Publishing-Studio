@@ -37,17 +37,17 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-[#faf9f6] text-slate-800 font-sans antialiased selection:bg-brand-100 selection:text-brand-900" dir={dir}>
       
-      {/* Global studio navbar */}
-      <header className="bg-white border-b border-neutral-border sticky top-0 z-40 px-6 py-4 flex items-center justify-between shadow-xs">
+      {/* Global studio navbar with Rich Dark Navy theme */}
+      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-brand-500 rounded flex items-center justify-center text-white font-display font-black text-lg tracking-tight select-none shadow-xs">
+          <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-display font-black text-lg tracking-tight select-none shadow-sm">
             I
           </div>
           <div>
-            <h1 className="text-sm font-display font-black text-slate-900 tracking-wider uppercase leading-none">
+            <h1 className="text-sm font-display font-black text-white tracking-wider uppercase leading-none">
               IMPACT
             </h1>
-            <span className="text-[10px] font-mono tracking-widest text-slate-400 font-bold uppercase block mt-0.5">
+            <span className="text-[10px] font-mono tracking-widest text-indigo-300 font-bold uppercase block mt-0.5">
               AI Publishing Studio
             </span>
           </div>
@@ -309,8 +309,8 @@ export default function App() {
           onClick={() => setShowFloatChat(!showFloatChat)}
           className={`w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition-all ${
             showFloatChat 
-              ? 'bg-rose-500 hover:bg-rose-600 text-white' 
-              : 'bg-brand-500 hover:bg-brand-600 text-white hover:scale-105'
+              ? 'bg-rose-600 hover:bg-rose-700 text-white' 
+              : 'bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white hover:scale-105'
           }`}
           title={uiLanguage === 'ar' ? 'مساعد التحرير الذكي' : 'AI Editorial Copilot'}
         >

@@ -27,6 +27,7 @@ export interface BookMetadata {
   subtitle?: string;
   author?: string;
   ageGroup: 'toddlers' | 'preschool' | 'early_grade' | 'middle_grade' | 'teacher';
+  targetAge?: string;
   bookType: BookType;
   language: BookLanguage;
   targetCurriculum: 'montessori' | 'british_national' | 'common_core' | 'pyp_ib' | 'traditional';
