@@ -103,8 +103,15 @@ export interface Page {
   imageOffsetX?: number; // horizontal offset in % or px
   textSize?: number; // font size in px e.g. 14, 18, 24, 32
   textColor?: string; // hex string e.g. '#0f172a'
+  titleSize?: number; // font size for title in px e.g. 18, 22, 28, 36
+  titleColor?: string; // hex string for title
   textPosition?: 'top' | 'middle' | 'bottom';
   textBgCard?: boolean; // translucent card background for text
+  extraText?: string; // custom extra text block
+  extraTextSize?: number; // font size for extra text
+  extraTextColor?: string; // hex color for extra text
+  extraTextPosition?: 'top' | 'middle' | 'bottom' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  extraTextBgCard?: boolean; // card background for extra text
 }
 
 export interface Asset {

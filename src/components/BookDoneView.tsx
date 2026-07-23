@@ -130,8 +130,9 @@ export default function BookDoneView() {
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center;">
           
           <div>
-            ${p.title ? `<h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">${p.title}</h2>` : ''}
-            ${p.textContent ? `<p style="font-size: 13px; color: #475569; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
+            ${p.title ? `<h2 style="font-size: ${p.titleSize || 22}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0 0 4px 0;">${p.title}</h2>` : ''}
+            ${p.textContent ? `<p style="font-size: ${p.textSize || 13}px; color: ${p.textColor || '#475569'}; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
+            ${p.extraText ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 13}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
           </div>
 
           <!-- Center Black & White Outline Image or Full Color Image -->
@@ -337,8 +338,9 @@ export default function BookDoneView() {
           <!-- Content Body -->
           <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; padding: 10px 0;">
             <div>
-              ${p.title ? `<h2 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">${p.title}</h2>` : ''}
-              ${p.textContent ? `<p style="font-size: 14px; color: #475569; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
+              ${p.title ? `<h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0 0 4px 0;">${p.title}</h2>` : ''}
+              ${p.textContent ? `<p style="font-size: ${p.textSize || 14}px; color: ${p.textColor || '#475569'}; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
+              ${p.extraText ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
             </div>
 
             <!-- Center Image (Outline or Full Color) -->

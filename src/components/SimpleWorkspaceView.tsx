@@ -50,10 +50,26 @@ export default function SimpleWorkspaceView() {
   const [imageScale, setImageScale] = useState(100);
   const [imageOffsetY, setImageOffsetY] = useState(0);
   const [imageOffsetX, setImageOffsetX] = useState(0);
+  
+  // Title Typography Controls
+  const [titleSize, setTitleSize] = useState(22);
+  const [titleColor, setTitleColor] = useState('#0f172a');
+  
+  // Body/Story Typography Controls
   const [textSize, setTextSize] = useState(14);
-  const [textColor, setTextColor] = useState('#0f172a');
+  const [textColor, setTextColor] = useState('#334155');
   const [textPosition, setTextPosition] = useState<'top' | 'middle' | 'bottom'>('top');
   const [textBgCard, setTextBgCard] = useState(false);
+  
+  // Custom Extra Text Block Controls
+  const [extraText, setExtraText] = useState('');
+  const [extraTextSize, setExtraTextSize] = useState(14);
+  const [extraTextColor, setExtraTextColor] = useState('#2563eb');
+  const [extraTextPosition, setExtraTextPosition] = useState<'top' | 'middle' | 'bottom' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('bottom');
+  const [extraTextBgCard, setExtraTextBgCard] = useState(false);
+
+  // Typography Controls Sub-Tab
+  const [textControlSubTab, setTextControlSubTab] = useState<'title' | 'story' | 'extra'>('title');
   
   // Book Metadata & Layout States (Arabic-first)
   const [customBookName, setCustomBookName] = useState('');
@@ -242,10 +258,19 @@ export default function SimpleWorkspaceView() {
       setImageScale(activePage.imageScale || 100);
       setImageOffsetY(activePage.imageOffsetY || 0);
       setImageOffsetX(activePage.imageOffsetX || 0);
+      
+      setTitleSize(activePage.titleSize || 22);
+      setTitleColor(activePage.titleColor || '#0f172a');
       setTextSize(activePage.textSize || 14);
-      setTextColor(activePage.textColor || '#0f172a');
+      setTextColor(activePage.textColor || '#334155');
       setTextPosition(activePage.textPosition || 'top');
       setTextBgCard(activePage.textBgCard || false);
+      
+      setExtraText(activePage.extraText || '');
+      setExtraTextSize(activePage.extraTextSize || 14);
+      setExtraTextColor(activePage.extraTextColor || '#2563eb');
+      setExtraTextPosition(activePage.extraTextPosition || 'bottom');
+      setExtraTextBgCard(activePage.extraTextBgCard || false);
       
       // Synchronize colors used
       if (activePage.colorsUsed && activePage.colorsUsed.length === 5) {
@@ -552,10 +577,17 @@ export default function SimpleWorkspaceView() {
       imageScale,
       imageOffsetY,
       imageOffsetX,
+      titleSize,
+      titleColor,
       textSize,
       textColor,
       textPosition,
-      textBgCard
+      textBgCard,
+      extraText,
+      extraTextSize,
+      extraTextColor,
+      extraTextPosition,
+      extraTextBgCard
     };
 
     if (enableTracing) {
@@ -927,7 +959,7 @@ export default function SimpleWorkspaceView() {
                       {(customTitle || activePage.title) && (
                         <h3 
                           className="font-display font-extrabold tracking-tight leading-snug mb-1"
-                          style={{ fontSize: `${textSize ? textSize + 2 : 16}px`, color: textColor || '#0f172a' }}
+                          style={{ fontSize: `${titleSize || 22}px`, color: titleColor || '#0f172a' }}
                         >
                           {customTitle || activePage.title}
                         </h3>
@@ -1006,7 +1038,7 @@ export default function SimpleWorkspaceView() {
                         {(customTitle || activePage.title) && (
                           <h3 
                             className="font-display font-extrabold tracking-tight leading-snug"
-                            style={{ fontSize: `${textSize ? textSize + 2 : 16}px`, color: textColor || '#0f172a' }}
+                            style={{ fontSize: `${titleSize || 22}px`, color: titleColor || '#0f172a' }}
                           >
                             {customTitle || activePage.title}
                           </h3>
@@ -1021,7 +1053,44 @@ export default function SimpleWorkspaceView() {
                         )}
                       </div>
                     )}
+
+                    {/* Extra Custom Floating / Positioned Text Overlay if set to floating/middle */}
+                    {(extraText || activePage.extraText) && (extraTextPosition === 'middle' || extraTextPosition === 'top-right' || extraTextPosition === 'top-left' || extraTextPosition === 'bottom-right' || extraTextPosition === 'bottom-left') && (
+                      <div 
+                        className={`transition-all ${
+                          extraTextPosition === 'top-right' ? 'absolute top-3 right-3 z-20 max-w-[45%]' :
+                          extraTextPosition === 'top-left' ? 'absolute top-3 left-3 z-20 max-w-[45%]' :
+                          extraTextPosition === 'bottom-right' ? 'absolute bottom-3 right-3 z-20 max-w-[45%]' :
+                          extraTextPosition === 'bottom-left' ? 'absolute bottom-3 left-3 z-20 max-w-[45%]' :
+                          'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center max-w-[85%]'
+                        } ${
+                          extraTextBgCard ? 'bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-md' : ''
+                        }`}
+                      >
+                        <p 
+                          className="font-sans font-bold leading-relaxed whitespace-pre-wrap"
+                          style={{ 
+                            fontSize: `${extraTextSize || 14}px`, 
+                            color: extraTextColor || '#2563eb' 
+                          }}
+                        >
+                          {extraText || activePage.extraText}
+                        </p>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Extra Custom Text rendered at TOP if position is 'top' */}
+                  {(extraText || activePage.extraText) && extraTextPosition === 'top' && (
+                    <div className={`mt-1 mb-1 text-center transition-all ${extraTextBgCard ? 'bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
+                      <p 
+                        className="font-sans font-bold leading-relaxed whitespace-pre-wrap"
+                        style={{ fontSize: `${extraTextSize || 14}px`, color: extraTextColor || '#2563eb' }}
+                      >
+                        {extraText || activePage.extraText}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Text rendered at BOTTOM if position is 'bottom' */}
                   {textPosition === 'bottom' && (
@@ -1029,7 +1098,7 @@ export default function SimpleWorkspaceView() {
                       {(customTitle || activePage.title) && (
                         <h3 
                           className="font-display font-extrabold tracking-tight leading-snug mb-1"
-                          style={{ fontSize: `${textSize ? textSize + 2 : 16}px`, color: textColor || '#0f172a' }}
+                          style={{ fontSize: `${titleSize || 22}px`, color: titleColor || '#0f172a' }}
                         >
                           {customTitle || activePage.title}
                         </h3>
@@ -1042,6 +1111,18 @@ export default function SimpleWorkspaceView() {
                           {customText || activePage.textContent}
                         </p>
                       )}
+                    </div>
+                  )}
+
+                  {/* Extra Custom Text rendered at BOTTOM if position is 'bottom' */}
+                  {(extraText || activePage.extraText) && extraTextPosition === 'bottom' && (
+                    <div className={`mt-1 mb-1 text-center transition-all ${extraTextBgCard ? 'bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
+                      <p 
+                        className="font-sans font-bold leading-relaxed whitespace-pre-wrap"
+                        style={{ fontSize: `${extraTextSize || 14}px`, color: extraTextColor || '#2563eb' }}
+                      >
+                        {extraText || activePage.extraText}
+                      </p>
                     </div>
                   )}
 
@@ -1442,151 +1523,445 @@ export default function SimpleWorkspaceView() {
                       </div>
                     )}
 
-                    {/* Title & Instructions text edits */}
+                    {/* Title & Instructions & Extra Text edits */}
                     <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4">
-                      <h4 className="text-xs uppercase font-mono font-bold text-slate-500 tracking-wider flex items-center justify-end gap-1.5 border-b border-slate-100 pb-2.5">
-                        {isAr ? 'الكتابة وتنسيق النصوص' : 'Page Titles & Typography'}
-                        <Type className="w-4 h-4 text-brand-500" />
-                      </h4>
-
-                      {/* Page Title */}
-                      <div>
-                        <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1">
-                          {isAr ? 'عنوان الصفحة (مثال: الأسد الشجاع):' : 'Page Heading / Label:'}
-                        </label>
-                        <input
-                          type="text"
-                          value={customTitle}
-                          onChange={(e) => {
-                            setCustomTitle(e.target.value);
-                            updatePageParam({ title: e.target.value });
-                          }}
-                          placeholder={isAr ? 'أدخل اسماً للصفحة...' : 'E.g. Brave Little Lion...'}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden text-right"
-                        />
-                      </div>
-
-                      {/* Text Content */}
-                      <div>
-                        <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1">
-                          {isAr ? 'النص التوجيهي أو القصة المصاحبة:' : 'Syllabus Story / Instruction Text:'}
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={customText}
-                          onChange={(e) => {
-                            setCustomText(e.target.value);
-                            updatePageParam({ textContent: e.target.value });
-                          }}
-                          placeholder={isAr ? 'اكتب نصاً للصفحة...' : 'Explain the drawing details...'}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden resize-none leading-relaxed text-right"
-                        />
-                      </div>
-
-                      {/* Text Font Size Selector */}
-                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                        <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                          {isAr ? 'حجم خط النصوص:' : 'Text Font Size:'}
-                        </label>
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {[12, 14, 18, 24, 32].map((sz) => (
-                            <button
-                              key={sz}
-                              type="button"
-                              onClick={() => {
-                                setTextSize(sz);
-                                updatePageParam({ textSize: sz });
-                              }}
-                              className={`py-1.5 text-xs font-bold rounded-lg transition border ${
-                                textSize === sz
-                                  ? 'bg-slate-900 text-white border-slate-900'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                              }`}
-                            >
-                              {sz}px
-                            </button>
-                          ))}
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <Type className="w-4 h-4 text-brand-500" />
+                          <h4 className="text-xs uppercase font-mono font-bold text-slate-700 tracking-wider">
+                            {isAr ? 'الكتابة وتنسيق النصوص' : 'Page Titles & Typography'}
+                          </h4>
                         </div>
                       </div>
 
-                      {/* Text Color Picker */}
-                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                        <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                          {isAr ? 'لون النص:' : 'Text Color:'}
-                        </label>
-                        <div className="flex items-center gap-2">
-                          {[
-                            { color: '#0f172a', name: 'أسود' },
-                            { color: '#1e3a8a', name: 'أزرق' },
-                            { color: '#dc2626', name: 'أحمر' },
-                            { color: '#15803d', name: 'أخضر' },
-                            { color: '#7c3aed', name: 'بنفسجي' },
-                            { color: '#b45309', name: 'بني' },
-                            { color: '#ffffff', name: 'أبيض' }
-                          ].map((item) => (
-                            <button
-                              key={item.color}
-                              type="button"
-                              onClick={() => {
-                                setTextColor(item.color);
-                                updatePageParam({ textColor: item.color });
+                      {/* Sub-tabs for Title vs Story Text vs Extra Text */}
+                      <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl text-[11px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setTextControlSubTab('title')}
+                          className={`py-1.5 rounded-lg transition ${
+                            textControlSubTab === 'title'
+                              ? 'bg-white text-brand-700 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          📌 {isAr ? 'العنوان' : 'Title'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTextControlSubTab('story')}
+                          className={`py-1.5 rounded-lg transition ${
+                            textControlSubTab === 'story'
+                              ? 'bg-white text-brand-700 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          📖 {isAr ? 'النص التوجيهي' : 'Story Text'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTextControlSubTab('extra')}
+                          className={`py-1.5 rounded-lg transition ${
+                            textControlSubTab === 'extra'
+                              ? 'bg-white text-brand-700 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          ➕ {isAr ? 'نص إضافي' : 'Extra Text'}
+                        </button>
+                      </div>
+
+                      {/* SUB-TAB 1: TITLE CONTROLS */}
+                      {textControlSubTab === 'title' && (
+                        <div className="space-y-3.5 animate-fade-in">
+                          {/* Page Title Input */}
+                          <div>
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1 text-right">
+                              {isAr ? 'عنوان الصفحة (مثال: الأسد الشجاع):' : 'Page Heading / Title:'}
+                            </label>
+                            <input
+                              type="text"
+                              value={customTitle}
+                              onChange={(e) => {
+                                setCustomTitle(e.target.value);
+                                updatePageParam({ title: e.target.value });
                               }}
-                              className={`w-7 h-7 rounded-full border-2 transition-transform ${
-                                textColor === item.color ? 'scale-110 ring-2 ring-brand-500 ring-offset-1 border-white' : 'border-slate-200'
-                              }`}
-                              style={{ backgroundColor: item.color }}
-                              title={item.name}
+                              placeholder={isAr ? 'أدخل اسماً للصفحة...' : 'E.g. Brave Little Lion...'}
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden text-right"
                             />
-                          ))}
-                        </div>
-                      </div>
+                          </div>
 
-                      {/* Text Position Selector */}
-                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                        <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                          {isAr ? 'موقع النص على الصفحة:' : 'Text Position on Sheet:'}
-                        </label>
-                        <div className="grid grid-cols-3 gap-1.5">
-                          {[
-                            { pos: 'top', labelAr: '⬆️ الأعلى', labelEn: 'Top' },
-                            { pos: 'middle', labelAr: '↕️ المنتصف', labelEn: 'Center' },
-                            { pos: 'bottom', labelAr: '⬇️ الأسفل', labelEn: 'Bottom' }
-                          ].map((item) => (
-                            <button
-                              key={item.pos}
-                              type="button"
-                              onClick={() => {
-                                const p = item.pos as 'top' | 'middle' | 'bottom';
-                                setTextPosition(p);
-                                updatePageParam({ textPosition: p });
+                          {/* Title Font Size Selector */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <div className="flex justify-between items-center">
+                              <span className="font-mono text-xs text-brand-600 font-bold">{titleSize}px</span>
+                              <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                                {isAr ? 'حجم خط العنوان الرئيسي:' : 'Title Font Size:'}
+                              </label>
+                            </div>
+                            <div className="grid grid-cols-6 gap-1">
+                              {[14, 18, 22, 28, 36, 44].map((sz) => (
+                                <button
+                                  key={sz}
+                                  type="button"
+                                  onClick={() => {
+                                    setTitleSize(sz);
+                                    updatePageParam({ titleSize: sz });
+                                  }}
+                                  className={`py-1.5 text-[11px] font-bold rounded-lg transition border ${
+                                    titleSize === sz
+                                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {sz}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Title Color Picker */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold text-right">
+                              {isAr ? 'لون خط العنوان:' : 'Title Color:'}
+                            </label>
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {[
+                                  { color: '#0f172a', name: 'أسود' },
+                                  { color: '#1e3a8a', name: 'أزرق داكن' },
+                                  { color: '#dc2626', name: 'أحمر' },
+                                  { color: '#15803d', name: 'أخضر' },
+                                  { color: '#7c3aed', name: 'بنفسجي' },
+                                  { color: '#b45309', name: 'بني' },
+                                  { color: '#ea580c', name: 'برتقالي' },
+                                  { color: '#ffffff', name: 'أبيض' }
+                                ].map((item) => (
+                                  <button
+                                    key={item.color}
+                                    type="button"
+                                    onClick={() => {
+                                      setTitleColor(item.color);
+                                      updatePageParam({ titleColor: item.color });
+                                    }}
+                                    className={`w-6 h-6 rounded-full border transition-transform ${
+                                      titleColor === item.color ? 'scale-110 ring-2 ring-brand-500 ring-offset-1 border-white shadow-xs' : 'border-slate-300'
+                                    }`}
+                                    style={{ backgroundColor: item.color }}
+                                    title={item.name}
+                                  />
+                                ))}
+                              </div>
+
+                              {/* Custom Color Input */}
+                              <input
+                                type="color"
+                                value={titleColor}
+                                onChange={(e) => {
+                                  setTitleColor(e.target.value);
+                                  updatePageParam({ titleColor: e.target.value });
+                                }}
+                                className="w-7 h-7 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-white"
+                                title={isAr ? 'اختر لوناً مخصصاً للعنوان' : 'Pick custom color'}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUB-TAB 2: STORY/GUIDE TEXT CONTROLS */}
+                      {textControlSubTab === 'story' && (
+                        <div className="space-y-3.5 animate-fade-in">
+                          {/* Text Content Area */}
+                          <div>
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1 text-right">
+                              {isAr ? 'النص التوجيهي أو القصة المصاحبة:' : 'Syllabus Story / Instruction Text:'}
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={customText}
+                              onChange={(e) => {
+                                setCustomText(e.target.value);
+                                updatePageParam({ textContent: e.target.value });
                               }}
-                              className={`py-1.5 text-xs font-bold rounded-lg transition border ${
-                                textPosition === item.pos
-                                  ? 'bg-brand-600 text-white border-brand-600'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                              }`}
-                            >
-                              {isAr ? item.labelAr : item.labelEn}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                              placeholder={isAr ? 'اكتب نصاً للصفحة...' : 'Explain the drawing details...'}
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden resize-none leading-relaxed text-right"
+                            />
+                          </div>
 
-                      {/* Text Background Box Toggle */}
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                        <span className="text-xs font-sans text-slate-600 font-semibold">
-                          {isAr ? 'خلفية بيضاء مظللة خلف النص:' : 'White card background behind text:'}
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={textBgCard}
-                          onChange={(e) => {
-                            setTextBgCard(e.target.checked);
-                            updatePageParam({ textBgCard: e.target.checked });
-                          }}
-                          className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
-                        />
-                      </div>
+                          {/* Text Font Size Selector */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <div className="flex justify-between items-center">
+                              <span className="font-mono text-xs text-brand-600 font-bold">{textSize}px</span>
+                              <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                                {isAr ? 'حجم خط النص التوجيهي:' : 'Body Text Size:'}
+                              </label>
+                            </div>
+                            <div className="grid grid-cols-6 gap-1">
+                              {[11, 13, 16, 20, 24, 30].map((sz) => (
+                                <button
+                                  key={sz}
+                                  type="button"
+                                  onClick={() => {
+                                    setTextSize(sz);
+                                    updatePageParam({ textSize: sz });
+                                  }}
+                                  className={`py-1.5 text-[11px] font-bold rounded-lg transition border ${
+                                    textSize === sz
+                                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {sz}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Text Color Picker */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold text-right">
+                              {isAr ? 'لون النص التوجيهي:' : 'Body Text Color:'}
+                            </label>
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {[
+                                  { color: '#334155', name: 'رمادي داكن' },
+                                  { color: '#0f172a', name: 'أسود' },
+                                  { color: '#1e3a8a', name: 'أزرق داكن' },
+                                  { color: '#dc2626', name: 'أحمر' },
+                                  { color: '#15803d', name: 'أخضر' },
+                                  { color: '#7c3aed', name: 'بنفسجي' },
+                                  { color: '#b45309', name: 'بني' },
+                                  { color: '#ffffff', name: 'أبيض' }
+                                ].map((item) => (
+                                  <button
+                                    key={item.color}
+                                    type="button"
+                                    onClick={() => {
+                                      setTextColor(item.color);
+                                      updatePageParam({ textColor: item.color });
+                                    }}
+                                    className={`w-6 h-6 rounded-full border transition-transform ${
+                                      textColor === item.color ? 'scale-110 ring-2 ring-brand-500 ring-offset-1 border-white shadow-xs' : 'border-slate-300'
+                                    }`}
+                                    style={{ backgroundColor: item.color }}
+                                    title={item.name}
+                                  />
+                                ))}
+                              </div>
+
+                              {/* Custom Color Input */}
+                              <input
+                                type="color"
+                                value={textColor}
+                                onChange={(e) => {
+                                  setTextColor(e.target.value);
+                                  updatePageParam({ textColor: e.target.value });
+                                }}
+                                className="w-7 h-7 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-white"
+                                title={isAr ? 'اختر لوناً مخصصاً للنص' : 'Pick custom color'}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Text Position Selector */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold text-right">
+                              {isAr ? 'موقع النص على الصفحة:' : 'Text Position on Sheet:'}
+                            </label>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              {[
+                                { pos: 'top', labelAr: '⬆️ الأعلى', labelEn: 'Top' },
+                                { pos: 'middle', labelAr: '↕️ المنتصف', labelEn: 'Center' },
+                                { pos: 'bottom', labelAr: '⬇️ الأسفل', labelEn: 'Bottom' }
+                              ].map((item) => (
+                                <button
+                                  key={item.pos}
+                                  type="button"
+                                  onClick={() => {
+                                    const p = item.pos as 'top' | 'middle' | 'bottom';
+                                    setTextPosition(p);
+                                    updatePageParam({ textPosition: p });
+                                  }}
+                                  className={`py-1.5 text-xs font-bold rounded-lg transition border ${
+                                    textPosition === item.pos
+                                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {isAr ? item.labelAr : item.labelEn}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Text Background Box Toggle */}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <span className="text-xs font-sans text-slate-600 font-semibold">
+                              {isAr ? 'خلفية بيضاء مظللة خلف النص:' : 'White card background behind text:'}
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={textBgCard}
+                              onChange={(e) => {
+                                setTextBgCard(e.target.checked);
+                                updatePageParam({ textBgCard: e.target.checked });
+                              }}
+                              className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUB-TAB 3: EXTRA CUSTOM TEXT CONTROLS */}
+                      {textControlSubTab === 'extra' && (
+                        <div className="space-y-3.5 animate-fade-in">
+                          {/* Extra Text Input Area */}
+                          <div>
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1 text-right">
+                              {isAr ? 'نص إضافي مخصص (ملاحظات / اسم الطفل / تعليمات):' : 'Extra Custom Text:'}
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={extraText}
+                              onChange={(e) => {
+                                setExtraText(e.target.value);
+                                updatePageParam({ extraText: e.target.value });
+                              }}
+                              placeholder={isAr ? 'مثال: "اسم المبدع الصغير: ..."' : 'E.g. "Coloring by Little Artist..."'}
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden resize-none leading-relaxed text-right font-medium"
+                            />
+                          </div>
+
+                          {/* Extra Text Size Selector */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <div className="flex justify-between items-center">
+                              <span className="font-mono text-xs text-brand-600 font-bold">{extraTextSize}px</span>
+                              <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                                {isAr ? 'حجم الخط للنص الإضافي:' : 'Extra Text Size:'}
+                              </label>
+                            </div>
+                            <div className="grid grid-cols-6 gap-1">
+                              {[12, 14, 18, 24, 32, 40].map((sz) => (
+                                <button
+                                  key={sz}
+                                  type="button"
+                                  onClick={() => {
+                                    setExtraTextSize(sz);
+                                    updatePageParam({ extraTextSize: sz });
+                                  }}
+                                  className={`py-1.5 text-[11px] font-bold rounded-lg transition border ${
+                                    extraTextSize === sz
+                                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {sz}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Extra Text Color Picker */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold text-right">
+                              {isAr ? 'لون النص الإضافي:' : 'Extra Text Color:'}
+                            </label>
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {[
+                                  { color: '#2563eb', name: 'أزرق' },
+                                  { color: '#0f172a', name: 'أسود' },
+                                  { color: '#dc2626', name: 'أحمر' },
+                                  { color: '#16a34a', name: 'أخضر' },
+                                  { color: '#9333ea', name: 'بنفسجي' },
+                                  { color: '#d97706', name: 'ذهبي' },
+                                  { color: '#e11d48', name: 'وردي' },
+                                  { color: '#ffffff', name: 'أبيض' }
+                                ].map((item) => (
+                                  <button
+                                    key={item.color}
+                                    type="button"
+                                    onClick={() => {
+                                      setExtraTextColor(item.color);
+                                      updatePageParam({ extraTextColor: item.color });
+                                    }}
+                                    className={`w-6 h-6 rounded-full border transition-transform ${
+                                      extraTextColor === item.color ? 'scale-110 ring-2 ring-brand-500 ring-offset-1 border-white shadow-xs' : 'border-slate-300'
+                                    }`}
+                                    style={{ backgroundColor: item.color }}
+                                    title={item.name}
+                                  />
+                                ))}
+                              </div>
+
+                              {/* Custom Color Input */}
+                              <input
+                                type="color"
+                                value={extraTextColor}
+                                onChange={(e) => {
+                                  setExtraTextColor(e.target.value);
+                                  updatePageParam({ extraTextColor: e.target.value });
+                                }}
+                                className="w-7 h-7 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-white"
+                                title={isAr ? 'اختر لوناً مخصصاً' : 'Pick custom color'}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Extra Text Position Selector */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold text-right">
+                              {isAr ? 'موقع ومكان النص الإضافي:' : 'Extra Text Location:'}
+                            </label>
+                            <div className="grid grid-cols-2 gap-1">
+                              {[
+                                { pos: 'top-right', label: '↗️ أعلى اليمين' },
+                                { pos: 'top', label: '⬆️ أعلى الوسط' },
+                                { pos: 'top-left', label: '↖️ أعلى اليسار' },
+                                { pos: 'middle', label: '↕️ المنتصف' },
+                                { pos: 'bottom-right', label: '↘️ أسفل اليمين' },
+                                { pos: 'bottom', label: '⬇️ أسفل الوسط' },
+                                { pos: 'bottom-left', label: '↙️ أسفل اليسار' }
+                              ].map((item) => (
+                                <button
+                                  key={item.pos}
+                                  type="button"
+                                  onClick={() => {
+                                    const p = item.pos as any;
+                                    setExtraTextPosition(p);
+                                    updatePageParam({ extraTextPosition: p });
+                                  }}
+                                  className={`py-1.5 px-1 text-[10px] font-bold rounded-lg transition border text-center ${
+                                    extraTextPosition === item.pos
+                                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {item.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Extra Text Background Box Toggle */}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <span className="text-xs font-sans text-slate-600 font-semibold">
+                              {isAr ? 'إحاطة النص الإضافي ببطاقة مظللة:' : 'Card background for extra text:'}
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={extraTextBgCard}
+                              onChange={(e) => {
+                                setExtraTextBgCard(e.target.checked);
+                                updatePageParam({ extraTextBgCard: e.target.checked });
+                              }}
+                              className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Tracing Activity Guide */}
