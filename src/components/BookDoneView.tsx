@@ -97,12 +97,12 @@ export default function BookDoneView() {
     const pagesHtml = currentBook.pages.map((p, idx) => `
       <div class="print-page" dir="${isRtl ? 'rtl' : 'ltr'}">
         
-        <!-- Header: Top Right = Colored Ref (<= 6cm), Top Center = Title & Badge, Top Left = Nursery Logo -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; height: 6.2cm;">
+        <!-- Header: Top Right = Colored Ref (<= 6cm) [only in coloring mode], Top Center = Title & Badge, Top Left = Nursery Logo -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; height: ${isFullColor ? '2.8cm' : '6.2cm'};">
           
           <!-- Top Right: Small Colored Reference Thumbnail (<= 6cm height) -->
           <div style="display: flex; flex-direction: column; align-items: flex-start; width: 6cm; flex-shrink: 0;">
-            ${p.illustrationUrl ? `
+            ${p.illustrationUrl && !isFullColor ? `
               <div style="border: 2px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
                 <img src="${p.illustrationUrl}" style="max-height: 5.2cm; max-width: 5.5cm; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
               </div>
@@ -134,12 +134,12 @@ export default function BookDoneView() {
             ${p.textContent ? `<p style="font-size: 13px; color: #475569; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
           </div>
 
-          <!-- Center Black & White Outline Image for Coloring -->
+          <!-- Center Black & White Outline Image or Full Color Image -->
           ${p.illustrationUrl ? `
             <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 6px 0;">
               <img 
                 src="${outlineImages[idx] || p.illustrationUrl}" 
-                style="max-height: 13.5cm; max-width: 17.5cm; object-fit: contain; display: block;" 
+                style="max-height: ${isFullColor ? '17.5cm' : '13.5cm'}; max-width: 17.5cm; object-fit: contain; display: block;" 
                 crossOrigin="anonymous" 
                 alt="رسمة التلوين" 
               />
@@ -307,10 +307,10 @@ export default function BookDoneView() {
         <div class="pdf-page" style="width: 794px; height: 1123px; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0;">
           
           <!-- Header Area -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; height: 210px;">
-            <!-- Top Right: Colored Reference Image (max height 210px / <= 6cm) -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; height: ${isFullColor ? '100px' : '210px'};">
+            <!-- Top Right: Colored Reference Image (max height 210px / <= 6cm) [only in coloring mode] -->
             <div style="display: flex; flex-direction: column; align-items: flex-start; width: 210px; flex-shrink: 0;">
-              ${p.illustrationUrl ? `
+              ${p.illustrationUrl && !isFullColor ? `
                 <div style="border: 2px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
                   <img src="${p.illustrationUrl}" style="max-height: 180px; max-width: 200px; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
                 </div>
@@ -341,12 +341,12 @@ export default function BookDoneView() {
               ${p.textContent ? `<p style="font-size: 14px; color: #475569; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
             </div>
 
-            <!-- Center Black & White Outline Image (Real outline base64 without relying on unsupported CSS filters in html2canvas) -->
+            <!-- Center Image (Outline or Full Color) -->
             ${p.illustrationUrl ? `
               <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 8px 0;">
                 <img 
                   src="${outlineImages[idx] || p.illustrationUrl}" 
-                  style="max-height: 520px; max-width: 680px; object-fit: contain; display: block;" 
+                  style="max-height: ${isFullColor ? '650px' : '520px'}; max-width: 680px; object-fit: contain; display: block;" 
                   crossOrigin="anonymous" 
                   alt="رسمة التلوين" 
                 />
