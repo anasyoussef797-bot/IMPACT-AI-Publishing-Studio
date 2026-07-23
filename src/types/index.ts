@@ -47,6 +47,7 @@ export interface BookMetadata {
   institutionLogoUrl?: string;
   nurseryLogoUrl?: string;
   paperSize?: 'A4' | 'A3' | 'Letter' | 'Custom';
+  designMode?: 'coloring' | 'fullcolor';
   customDimensions?: {
     width: number;
     height: number;
@@ -97,6 +98,13 @@ export interface Page {
   reviewStatus: 'pending' | 'reviewed' | 'approved';
   pedagogicalCritique?: string;
   colorsUsed?: string[];
+  imageScale?: number; // e.g., 50 to 150 (%)
+  imageOffsetY?: number; // vertical offset in % or px
+  imageOffsetX?: number; // horizontal offset in % or px
+  textSize?: number; // font size in px e.g. 14, 18, 24, 32
+  textColor?: string; // hex string e.g. '#0f172a'
+  textPosition?: 'top' | 'middle' | 'bottom';
+  textBgCard?: boolean; // translucent card background for text
 }
 
 export interface Asset {

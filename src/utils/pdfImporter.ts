@@ -34,6 +34,7 @@ export async function parsePdfFile(file: File, onProgress?: (current: number, to
     await page.render({
       canvasContext: ctx,
       viewport: viewport,
+      canvas: canvas as unknown as HTMLCanvasElement
     }).promise;
 
     const imageDataUrl = canvas.toDataURL('image/png');

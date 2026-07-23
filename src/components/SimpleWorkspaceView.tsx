@@ -10,10 +10,11 @@ import {
   BookOpen, Plus, Trash2, Printer, Sparkles, Image as ImageIcon, Upload, 
   ChevronLeft, ChevronRight, PenTool, Layout, Wand2, Type, Check,
   AlertCircle, Star, Palette, HelpCircle, ArrowLeftRight, Search, 
-  RefreshCw, Scissors, Settings, ExternalLink, FileUp
+  RefreshCw, Scissors, Settings, ExternalLink, FileUp, Move, ZoomIn, ZoomOut, Sliders, Maximize2, Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import PdfImportModal from './PdfImportModal';
+import { Page } from '../types';
 
 export default function SimpleWorkspaceView() {
   const { t, isRtl, uiLanguage } = useTranslation();
@@ -44,6 +45,15 @@ export default function SimpleWorkspaceView() {
   const [customText, setCustomText] = useState('');
   const [tracingChar, setTracingChar] = useState('أ');
   const [enableTracing, setEnableTracing] = useState(false);
+
+  // Full Color & Custom Page Layout Controls
+  const [imageScale, setImageScale] = useState(100);
+  const [imageOffsetY, setImageOffsetY] = useState(0);
+  const [imageOffsetX, setImageOffsetX] = useState(0);
+  const [textSize, setTextSize] = useState(14);
+  const [textColor, setTextColor] = useState('#0f172a');
+  const [textPosition, setTextPosition] = useState<'top' | 'middle' | 'bottom'>('top');
+  const [textBgCard, setTextBgCard] = useState(false);
   
   // Book Metadata & Layout States (Arabic-first)
   const [customBookName, setCustomBookName] = useState('');
@@ -220,6 +230,7 @@ export default function SimpleWorkspaceView() {
   if (!currentBook) return null;
 
   const activePage = currentBook.pages.find(p => p.id === selectedPageId) || currentBook.pages[0];
+  const isFullColorMode = currentBook.metadata.designMode === 'fullcolor';
 
   // Sync specific details when active page itself changes
   useEffect(() => {
@@ -228,6 +239,13 @@ export default function SimpleWorkspaceView() {
       setCustomText(activePage.textContent || '');
       setEnableTracing(!!activePage.activity && activePage.activity.type === 'tracing');
       setTracingChar(activePage.activity?.contentData?.character || 'أ');
+      setImageScale(activePage.imageScale || 100);
+      setImageOffsetY(activePage.imageOffsetY || 0);
+      setImageOffsetX(activePage.imageOffsetX || 0);
+      setTextSize(activePage.textSize || 14);
+      setTextColor(activePage.textColor || '#0f172a');
+      setTextPosition(activePage.textPosition || 'top');
+      setTextBgCard(activePage.textBgCard || false);
       
       // Synchronize colors used
       if (activePage.colorsUsed && activePage.colorsUsed.length === 5) {
@@ -517,6 +535,12 @@ export default function SimpleWorkspaceView() {
     setAiPrompt('');
   };
 
+  // Quick helper for live parameter updates
+  const updatePageParam = (updates: Partial<Page>) => {
+    if (!activePage) return;
+    updatePage(activePage.id, updates);
+  };
+
   // Save changes to current page
   const handleSaveChanges = () => {
     if (!activePage) return;
@@ -524,7 +548,14 @@ export default function SimpleWorkspaceView() {
     const updates: Partial<typeof activePage> = {
       title: customTitle,
       textContent: customText,
-      colorsUsed: colorsUsed
+      colorsUsed: colorsUsed,
+      imageScale,
+      imageOffsetY,
+      imageOffsetX,
+      textSize,
+      textColor,
+      textPosition,
+      textBgCard
     };
 
     if (enableTracing) {
@@ -727,23 +758,45 @@ export default function SimpleWorkspaceView() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={() => setIsPdfModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all shadow-xs"
-            title={isAr ? 'استيراد كتاب PDF وتعديل اللوجو والعنوان والطباعة' : 'Import & edit PDF book'}
-          >
-            <FileUp className="w-4 h-4" />
-            {isAr ? '📂 استيراد وتعديل كتاب PDF' : '📂 Import & Edit PDF'}
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => setIsPdfModalOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all shadow-xs"
+              title={isAr ? 'استيراد كتاب PDF وتعديل اللوجو والعنوان والطباعة' : 'Import & edit PDF book'}
+            >
+              <FileUp className="w-4 h-4" />
+              {isAr ? '📂 استيراد وتعديل كتاب PDF' : '📂 Import & Edit PDF'}
+            </button>
+
+            <button
+              onClick={() => setProfessionalMode(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all"
+              title={isAr ? 'تبديل للوضع الاحترافي' : 'Switch to Professional Mode'}
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+              {isAr ? 'التبديل للوضع المتقدم' : 'Switch to Advanced Mode'}
+            </button>
+          </div>
 
           <button
-            onClick={() => setProfessionalMode(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all"
-            title={isAr ? 'تبديل للوضع الاحترافي' : 'Switch to Professional Mode'}
+            onClick={() => {
+              const newMode = isFullColorMode ? 'coloring' : 'fullcolor';
+              updateBookMetadata({ designMode: newMode });
+              addNotification('info', newMode === 'fullcolor'
+                ? (isAr ? 'تم الانتقال لـ وضع تصميم الكتب الملونة (ألوان حقيقية بالكامل) 🎨' : 'Switched to Full Color Mode 🎨')
+                : (isAr ? 'تم الانتقال لـ وضع كتب التلوين (أوتلاين أسود وأبيض) 🖍️' : 'Switched to Coloring Book Mode 🖍️')
+              );
+            }}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all shadow-xs ${
+              isFullColorMode
+                ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white ring-2 ring-purple-300'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
+            title={isAr ? 'تصميم كتب ملونة بدون تحويل لأوتلاين مع تحريك وتغيير حجم الصور والنصوص' : 'Full Color Design Mode'}
           >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-            {isAr ? 'التبديل للوضع المتقدم' : 'Switch to Advanced Mode'}
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+            {isAr ? (isFullColorMode ? '✨ وضع تصميم الكتب الملونة (مفعّل)' : '🎨 وضع تصميم الكتب الملونة') : (isFullColorMode ? '✨ Full Color Mode (Active)' : '🎨 Full Color Book Mode')}
           </button>
         </div>
       </div>
@@ -795,7 +848,7 @@ export default function SimpleWorkspaceView() {
                         src={p.illustrationUrl} 
                         alt={p.title} 
                         referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover grayscale brightness-125 contrast-125" 
+                        className={`w-full h-full object-cover ${isFullColorMode ? '' : 'grayscale brightness-125 contrast-125'}`} 
                       />
                     ) : (
                       <span className="text-[10px] font-mono font-bold text-slate-400">{p.pageNumber}</span>
@@ -809,7 +862,9 @@ export default function SimpleWorkspaceView() {
                       {p.title || (isAr ? 'صفحة غير معنونة' : 'Untitled Page')}
                     </h4>
                     <p className="text-[10px] text-slate-400 font-sans truncate mt-0.5 leading-none">
-                      {p.layoutType === 'tracing' ? (isAr ? '✍️ تتبع ولون' : '✍️ Trace & Color') : (isAr ? '🎨 رسمة تلوين' : '🎨 Coloring Page')}
+                      {isFullColorMode 
+                        ? (isAr ? '🎨 صفحة ملونة' : '🎨 Full Color Page')
+                        : (p.layoutType === 'tracing' ? (isAr ? '✍️ تتبع ولون' : '✍️ Trace & Color') : (isAr ? '🎨 رسمة تلوين' : '🎨 Coloring Page'))}
                     </p>
                   </div>
                 </button>
@@ -866,62 +921,129 @@ export default function SimpleWorkspaceView() {
                 {/* Sheet Content container */}
                 <div className="px-6 pt-11 pb-11 h-full flex flex-col justify-between select-none text-right" dir={isRtl ? 'rtl' : 'ltr'}>
                   
-                  {/* Top Page Header / Instruction */}
-                  <div className="mt-2">
-                    <h3 className="text-sm font-display font-extrabold text-slate-900 tracking-tight leading-none mb-1">
-                      {activePage.title || (isAr ? 'عنوان الصفحة' : 'Page Title')}
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
-                      {activePage.textContent || (isAr ? 'تعليمات للأطفال أو حكمة مفيدة...' : 'Syllabus instruction or caption...')}
-                    </p>
-                  </div>
+                  {/* Text rendered at TOP if position is 'top' */}
+                  {(textPosition === 'top' || !textPosition) && (
+                    <div className={`mt-1 transition-all ${textBgCard ? 'bg-white/90 backdrop-blur-xs p-2.5 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
+                      {(customTitle || activePage.title) && (
+                        <h3 
+                          className="font-display font-extrabold tracking-tight leading-snug mb-1"
+                          style={{ fontSize: `${textSize ? textSize + 2 : 16}px`, color: textColor || '#0f172a' }}
+                        >
+                          {customTitle || activePage.title}
+                        </h3>
+                      )}
+                      {(customText || activePage.textContent) && (
+                        <p 
+                          className="font-sans leading-relaxed"
+                          style={{ fontSize: `${textSize || 14}px`, color: textColor || '#334155' }}
+                        >
+                          {customText || activePage.textContent}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Dual Image Illustration Concept */}
-                  <div className="flex-1 my-3 bg-slate-50 rounded-xl border border-slate-200/80 overflow-hidden relative flex items-center justify-center">
+                  {/* Dual Image Illustration Concept / Full Color Image */}
+                  <div className="flex-1 my-2 bg-slate-50/50 rounded-xl border border-slate-200/80 overflow-hidden relative flex flex-col items-center justify-center">
                     {activePage.illustrationUrl ? (
-                      <div className="w-full h-full relative">
-                        {isProcessingOutline ? (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 z-10">
-                            <RefreshCw className="w-6 h-6 text-brand-500 animate-spin mb-1" />
-                            <span className="text-[9px] text-slate-400 font-bold">{isAr ? 'جاري استخلاص خطوط الرسم...' : 'Extracting outlines...'}</span>
-                          </div>
-                        ) : null}
-
-                        {/* 1. Large Copy: Clean Black & White outline drawing for coloring */}
-                        <img 
-                          src={outlineDataUrl || activePage.illustrationUrl} 
-                          alt="Coloring outline" 
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-contain mix-blend-multiply"
-                          style={!outlineDataUrl ? { filter: 'grayscale(100%) contrast(1000%) brightness(130%)' } : {}}
-                        />
-
-                        {/* 2. Small Copy: Floating original colored preview to assist color choice */}
-                        <div className="absolute top-2 right-2 w-14 h-18 bg-white border-2 border-brand-500 rounded-lg shadow-lg overflow-hidden flex flex-col items-center z-20 animate-fade-in">
-                          <div className="bg-brand-500 text-white text-[7px] font-sans font-bold w-full text-center py-0.5 leading-none select-none">
-                            {isAr ? 'دليل الألوان' : 'Color Guide'}
-                          </div>
+                      <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
+                        {isFullColorMode ? (
                           <img 
                             src={activePage.illustrationUrl} 
-                            alt="Original colored reference" 
+                            alt={activePage.title || 'Full color image'} 
                             referrerPolicy="no-referrer"
-                            className="w-full h-12 object-cover" 
+                            className="max-w-full max-h-full object-contain transition-transform duration-150"
+                            style={{
+                              transform: `scale(${imageScale / 100}) translate(${imageOffsetX}px, ${imageOffsetY}px)`
+                            }}
                           />
-                        </div>
+                        ) : (
+                          <>
+                            {isProcessingOutline && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 z-10">
+                                <RefreshCw className="w-6 h-6 text-brand-500 animate-spin mb-1" />
+                                <span className="text-[9px] text-slate-400 font-bold">{isAr ? 'جاري استخلاص خطوط الرسم...' : 'Extracting outlines...'}</span>
+                              </div>
+                            )}
 
-                        {/* Visual Grayscale Sketch Enhancer Filter Overlay */}
-                        <div className="absolute inset-0 pointer-events-none border border-slate-200/30 rounded-xl" />
+                            {/* 1. Large Copy: Clean Black & White outline drawing for coloring */}
+                            <img 
+                              src={outlineDataUrl || activePage.illustrationUrl} 
+                              alt="Coloring outline" 
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-contain mix-blend-multiply"
+                              style={!outlineDataUrl ? { filter: 'grayscale(100%) contrast(1000%) brightness(130%)' } : {}}
+                            />
+
+                            {/* 2. Small Copy: Floating original colored preview to assist color choice */}
+                            <div className="absolute top-2 right-2 w-14 h-18 bg-white border-2 border-brand-500 rounded-lg shadow-lg overflow-hidden flex flex-col items-center z-20 animate-fade-in">
+                              <div className="bg-brand-500 text-white text-[7px] font-sans font-bold w-full text-center py-0.5 leading-none select-none">
+                                {isAr ? 'دليل الألوان' : 'Color Guide'}
+                              </div>
+                              <img 
+                                src={activePage.illustrationUrl} 
+                                alt="Original colored reference" 
+                                referrerPolicy="no-referrer"
+                                className="w-full h-12 object-cover" 
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center p-4 text-center space-y-2">
                         <Palette className="w-10 h-10 text-slate-300 mb-1 animate-pulse" />
-                        <span className="text-xs text-slate-600 font-bold">{isAr ? 'الصفحة فارغة حالياً' : 'Empty Coloring Sheet'}</span>
+                        <span className="text-xs text-slate-600 font-bold">{isAr ? 'الصفحة فارغة حالياً' : 'Empty Page'}</span>
                         <p className="text-[10px] text-slate-400 leading-normal max-w-[200px]">
                           {isAr ? 'اختر قالباً، أو ابحث في الويب، أو ولد رسمة بالذكاء الاصطناعي، أو ارفع صورة' : 'Select a preset, search web, generate via AI, or upload an image.'}
                         </p>
                       </div>
                     )}
+
+                    {/* Text rendered inside MIDDLE if position is 'middle' */}
+                    {textPosition === 'middle' && (
+                      <div className={`absolute bottom-2 inset-x-2 transition-all ${textBgCard ? 'bg-white/90 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : 'text-center'}`}>
+                        {(customTitle || activePage.title) && (
+                          <h3 
+                            className="font-display font-extrabold tracking-tight leading-snug"
+                            style={{ fontSize: `${textSize ? textSize + 2 : 16}px`, color: textColor || '#0f172a' }}
+                          >
+                            {customTitle || activePage.title}
+                          </h3>
+                        )}
+                        {(customText || activePage.textContent) && (
+                          <p 
+                            className="font-sans leading-relaxed"
+                            style={{ fontSize: `${textSize || 14}px`, color: textColor || '#334155' }}
+                          >
+                            {customText || activePage.textContent}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
+
+                  {/* Text rendered at BOTTOM if position is 'bottom' */}
+                  {textPosition === 'bottom' && (
+                    <div className={`mb-1 transition-all ${textBgCard ? 'bg-white/90 backdrop-blur-xs p-2.5 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
+                      {(customTitle || activePage.title) && (
+                        <h3 
+                          className="font-display font-extrabold tracking-tight leading-snug mb-1"
+                          style={{ fontSize: `${textSize ? textSize + 2 : 16}px`, color: textColor || '#0f172a' }}
+                        >
+                          {customTitle || activePage.title}
+                        </h3>
+                      )}
+                      {(customText || activePage.textContent) && (
+                        <p 
+                          className="font-sans leading-relaxed"
+                          style={{ fontSize: `${textSize || 14}px`, color: textColor || '#334155' }}
+                        >
+                          {customText || activePage.textContent}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Optional Dash Alphabet Tracing Guides */}
                   {activePage.activity && activePage.activity.type === 'tracing' && (
@@ -1184,47 +1306,141 @@ export default function SimpleWorkspaceView() {
                       </div>
                     </div>
 
-                    {/* Kids Smart Outline Extractor Controls */}
-                    <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4">
-                      <h4 className="text-xs uppercase font-mono font-bold text-slate-500 tracking-wider flex items-center justify-end gap-1.5 border-b border-slate-100 pb-2.5">
-                        {isAr ? 'منقّي خطوط التلوين الذكي' : 'Kids Smart Outline Extractor'}
-                        <Wand2 className="w-4 h-4 text-brand-500" />
-                      </h4>
+                    {/* Full Color Image Scale & Positioning Box OR Outline Extractor */}
+                    {isFullColorMode ? (
+                      <div className="bg-white border border-purple-200 p-5 rounded-2xl shadow-xs space-y-4">
+                        <h4 className="text-xs uppercase font-mono font-bold text-purple-700 tracking-wider flex items-center justify-end gap-1.5 border-b border-purple-100 pb-2.5">
+                          {isAr ? 'أدوات التحكم بالصورة الملونة' : 'Full Color Image Adjustments'}
+                          <Sliders className="w-4 h-4 text-purple-600" />
+                        </h4>
 
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-sans text-slate-600 font-semibold">
-                          {isAr ? 'تفعيل منقّي الخطوط التلقائي للطفل:' : 'Enable kids outline extractor:'}
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={useSmartOutline}
-                          onChange={(e) => setUseSmartOutline(e.target.checked)}
-                          className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
-                        />
-                      </div>
-
-                      {useSmartOutline && (
-                        <div className="space-y-2 pt-1">
-                          <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            <span className="font-mono text-xs">{outlineThreshold}</span>
-                            <span>{isAr ? 'حساسية سماكة خطوط التلوين:' : 'Outline sensitivity:'}</span>
+                        {/* Image Scale Slider */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                            <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs">{imageScale}%</span>
+                            <span className="flex items-center gap-1">
+                              <ZoomIn className="w-3.5 h-3.5 text-purple-500" />
+                              {isAr ? 'حجم وتكبير الصورة (Scale):' : 'Image Scale:'}
+                            </span>
                           </div>
                           <input
                             type="range"
-                            min="5"
-                            max="100"
-                            value={outlineThreshold}
-                            onChange={(e) => setOutlineThreshold(Number(e.target.value))}
-                            className="w-full accent-brand-500"
+                            min="50"
+                            max="150"
+                            value={imageScale}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setImageScale(val);
+                              updatePageParam({ imageScale: val });
+                            }}
+                            className="w-full accent-purple-600 cursor-pointer"
                           />
-                          <p className="text-[9px] text-slate-400 text-right leading-normal">
-                            {isAr 
-                              ? '💡 اسحب للتحكم في وضوح وسماكة الخطوط؛ القيمة الأقل تزيد من إبراز أدق تفاصيل الرسمة.' 
-                              : '💡 Drag to control outline thickness; lower values reveal more detailed drawing contours.'}
-                          </p>
                         </div>
-                      )}
-                    </div>
+
+                        {/* Image Offset Y Slider */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                            <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs">{imageOffsetY}px</span>
+                            <span className="flex items-center gap-1">
+                              <Move className="w-3.5 h-3.5 text-purple-500" />
+                              {isAr ? 'الموقع الرأسي (أعلى / أسفل):' : 'Vertical Offset (Y):'}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-60"
+                            max="60"
+                            value={imageOffsetY}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setImageOffsetY(val);
+                              updatePageParam({ imageOffsetY: val });
+                            }}
+                            className="w-full accent-purple-600 cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Image Offset X Slider */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                            <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs">{imageOffsetX}px</span>
+                            <span className="flex items-center gap-1">
+                              <Move className="w-3.5 h-3.5 text-purple-500" />
+                              {isAr ? 'الموقع الأفقي (يمين / يسار):' : 'Horizontal Offset (X):'}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-60"
+                            max="60"
+                            value={imageOffsetX}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setImageOffsetX(val);
+                              updatePageParam({ imageOffsetX: val });
+                            }}
+                            className="w-full accent-purple-600 cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Reset Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageScale(100);
+                            setImageOffsetY(0);
+                            setImageOffsetX(0);
+                            updatePageParam({ imageScale: 100, imageOffsetY: 0, imageOffsetX: 0 });
+                          }}
+                          className="w-full py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 border border-purple-200"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                          {isAr ? 'إعادة ضبط وضع الصورة للأصل' : 'Reset Image Position'}
+                        </button>
+                      </div>
+                    ) : (
+                      /* Kids Smart Outline Extractor Controls */
+                      <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4">
+                        <h4 className="text-xs uppercase font-mono font-bold text-slate-500 tracking-wider flex items-center justify-end gap-1.5 border-b border-slate-100 pb-2.5">
+                          {isAr ? 'منقّي خطوط التلوين الذكي' : 'Kids Smart Outline Extractor'}
+                          <Wand2 className="w-4 h-4 text-brand-500" />
+                        </h4>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-sans text-slate-600 font-semibold">
+                            {isAr ? 'تفعيل منقّي الخطوط التلقائي للطفل:' : 'Enable kids outline extractor:'}
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={useSmartOutline}
+                            onChange={(e) => setUseSmartOutline(e.target.checked)}
+                            className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
+                          />
+                        </div>
+
+                        {useSmartOutline && (
+                          <div className="space-y-2 pt-1">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              <span className="font-mono text-xs">{outlineThreshold}</span>
+                              <span>{isAr ? 'حساسية سماكة خطوط التلوين:' : 'Outline sensitivity:'}</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="5"
+                              max="100"
+                              value={outlineThreshold}
+                              onChange={(e) => setOutlineThreshold(Number(e.target.value))}
+                              className="w-full accent-brand-500"
+                            />
+                            <p className="text-[9px] text-slate-400 text-right leading-normal">
+                              {isAr 
+                                ? '💡 اسحب للتحكم في وضوح وسماكة الخطوط؛ القيمة الأقل تزيد من إبراز أدق تفاصيل الرسمة.' 
+                                : '💡 Drag to control outline thickness; lower values reveal more detailed drawing contours.'}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Title & Instructions text edits */}
                     <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4">
@@ -1241,7 +1457,10 @@ export default function SimpleWorkspaceView() {
                         <input
                           type="text"
                           value={customTitle}
-                          onChange={(e) => setCustomTitle(e.target.value)}
+                          onChange={(e) => {
+                            setCustomTitle(e.target.value);
+                            updatePageParam({ title: e.target.value });
+                          }}
                           placeholder={isAr ? 'أدخل اسماً للصفحة...' : 'E.g. Brave Little Lion...'}
                           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden text-right"
                         />
@@ -1250,14 +1469,122 @@ export default function SimpleWorkspaceView() {
                       {/* Text Content */}
                       <div>
                         <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1">
-                          {isAr ? 'النص التوجيهي أو الحكمة المصاحبة للطفل:' : 'Syllabus Story / Instruction Text:'}
+                          {isAr ? 'النص التوجيهي أو القصة المصاحبة:' : 'Syllabus Story / Instruction Text:'}
                         </label>
                         <textarea
                           rows={2}
                           value={customText}
-                          onChange={(e) => setCustomText(e.target.value)}
-                          placeholder={isAr ? 'مثال: حرف الألف يرمز لملك الغابة...' : 'Explain the drawing details...'}
+                          onChange={(e) => {
+                            setCustomText(e.target.value);
+                            updatePageParam({ textContent: e.target.value });
+                          }}
+                          placeholder={isAr ? 'اكتب نصاً للصفحة...' : 'Explain the drawing details...'}
                           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden resize-none leading-relaxed text-right"
+                        />
+                      </div>
+
+                      {/* Text Font Size Selector */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                        <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                          {isAr ? 'حجم خط النصوص:' : 'Text Font Size:'}
+                        </label>
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {[12, 14, 18, 24, 32].map((sz) => (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => {
+                                setTextSize(sz);
+                                updatePageParam({ textSize: sz });
+                              }}
+                              className={`py-1.5 text-xs font-bold rounded-lg transition border ${
+                                textSize === sz
+                                  ? 'bg-slate-900 text-white border-slate-900'
+                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              {sz}px
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Text Color Picker */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                        <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                          {isAr ? 'لون النص:' : 'Text Color:'}
+                        </label>
+                        <div className="flex items-center gap-2">
+                          {[
+                            { color: '#0f172a', name: 'أسود' },
+                            { color: '#1e3a8a', name: 'أزرق' },
+                            { color: '#dc2626', name: 'أحمر' },
+                            { color: '#15803d', name: 'أخضر' },
+                            { color: '#7c3aed', name: 'بنفسجي' },
+                            { color: '#b45309', name: 'بني' },
+                            { color: '#ffffff', name: 'أبيض' }
+                          ].map((item) => (
+                            <button
+                              key={item.color}
+                              type="button"
+                              onClick={() => {
+                                setTextColor(item.color);
+                                updatePageParam({ textColor: item.color });
+                              }}
+                              className={`w-7 h-7 rounded-full border-2 transition-transform ${
+                                textColor === item.color ? 'scale-110 ring-2 ring-brand-500 ring-offset-1 border-white' : 'border-slate-200'
+                              }`}
+                              style={{ backgroundColor: item.color }}
+                              title={item.name}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Text Position Selector */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                        <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                          {isAr ? 'موقع النص على الصفحة:' : 'Text Position on Sheet:'}
+                        </label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {[
+                            { pos: 'top', labelAr: '⬆️ الأعلى', labelEn: 'Top' },
+                            { pos: 'middle', labelAr: '↕️ المنتصف', labelEn: 'Center' },
+                            { pos: 'bottom', labelAr: '⬇️ الأسفل', labelEn: 'Bottom' }
+                          ].map((item) => (
+                            <button
+                              key={item.pos}
+                              type="button"
+                              onClick={() => {
+                                const p = item.pos as 'top' | 'middle' | 'bottom';
+                                setTextPosition(p);
+                                updatePageParam({ textPosition: p });
+                              }}
+                              className={`py-1.5 text-xs font-bold rounded-lg transition border ${
+                                textPosition === item.pos
+                                  ? 'bg-brand-600 text-white border-brand-600'
+                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              {isAr ? item.labelAr : item.labelEn}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Text Background Box Toggle */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <span className="text-xs font-sans text-slate-600 font-semibold">
+                          {isAr ? 'خلفية بيضاء مظللة خلف النص:' : 'White card background behind text:'}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={textBgCard}
+                          onChange={(e) => {
+                            setTextBgCard(e.target.checked);
+                            updatePageParam({ textBgCard: e.target.checked });
+                          }}
+                          className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
                         />
                       </div>
                     </div>

@@ -94,9 +94,12 @@ export default function PdfImportModal({ isOpen, onClose }: PdfImportModalProps)
       ageGroup: 'preschool',
       bookType: 'arabic',
       language: 'ar',
-      targetCurriculum: 'general',
+      targetCurriculum: 'traditional',
       pedagogicalGoal: 'تعديل شعارات وتفاصيل الكتاب وتصديره أو طباعته',
       paperSize: 'A4',
+      dimensions: { width: 210, height: 297, unit: 'mm' },
+      bleed: 3,
+      margin: 10,
       nurseryLogoUrl,
       institutionLogoUrl,
       platformName

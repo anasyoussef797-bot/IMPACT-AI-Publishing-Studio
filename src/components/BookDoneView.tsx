@@ -23,12 +23,17 @@ export default function BookDoneView() {
 
   // Handle direct printer action targeting ONLY book pages
   const handlePrint = async () => {
-    addNotification('info', isAr ? 'جاري تحويل الرسومات إلى أوتلاين أسود وأبيض وتجهيز الطباعة...' : 'Converting images to black & white outlines for print...');
+    const isFullColor = currentBook.metadata.designMode === 'fullcolor';
+    addNotification('info', isFullColor
+      ? (isAr ? 'جاري تجهيز طباعة الكتاب الملون...' : 'Preparing full-color book print...')
+      : (isAr ? 'جاري تحويل الرسومات إلى أوتلاين أسود وأبيض وتجهيز الطباعة...' : 'Converting images to black & white outlines for print...')
+    );
 
-    // Convert all illustrations to true black & white outlines
+    // Convert all illustrations to true black & white outlines if coloring mode, or keep full color
     const outlineImages = await Promise.all(
       currentBook.pages.map(async (p) => {
         if (!p.illustrationUrl) return '';
+        if (isFullColor) return p.illustrationUrl;
         try {
           return await generateColoringOutline(p.illustrationUrl, 35);
         } catch {
@@ -232,14 +237,19 @@ export default function BookDoneView() {
 
   // Handle PDF file download using jsPDF + html2canvas
   const handleDownloadPdf = async () => {
+    const isFullColor = currentBook.metadata.designMode === 'fullcolor';
     setIsGeneratingPdf(true);
-    addNotification('info', isAr ? 'جاري استخلاص خطوط الرسم وبناء ملف PDF الملون والمتناسق...' : 'Generating crisp black & white outline PDF...');
+    addNotification('info', isFullColor
+      ? (isAr ? 'جاري تجهيز وبناء ملف PDF الملون احترافياً...' : 'Generating full-color PDF...')
+      : (isAr ? 'جاري استخلاص خطوط الرسم وبناء ملف PDF الملون والمتناسق...' : 'Generating crisp black & white outline PDF...')
+    );
 
     try {
-      // Convert all illustrations to real line-art black & white outline Data URLs
+      // Convert all illustrations to real line-art black & white outline Data URLs if coloring, or keep original if fullcolor
       const outlineImages = await Promise.all(
         currentBook.pages.map(async (p) => {
           if (!p.illustrationUrl) return '';
+          if (isFullColor) return p.illustrationUrl;
           try {
             return await generateColoringOutline(p.illustrationUrl, 35);
           } catch {
