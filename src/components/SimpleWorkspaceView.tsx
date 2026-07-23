@@ -54,11 +54,13 @@ export default function SimpleWorkspaceView() {
   // Title Typography Controls
   const [titleSize, setTitleSize] = useState(22);
   const [titleColor, setTitleColor] = useState('#0f172a');
+  const [titlePosition, setTitlePosition] = useState<'top' | 'middle' | 'bottom' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top');
+  const [titleBgCard, setTitleBgCard] = useState(false);
   
   // Body/Story Typography Controls
   const [textSize, setTextSize] = useState(14);
   const [textColor, setTextColor] = useState('#334155');
-  const [textPosition, setTextPosition] = useState<'top' | 'middle' | 'bottom'>('top');
+  const [textPosition, setTextPosition] = useState<'top' | 'middle' | 'bottom' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'>('top');
   const [textBgCard, setTextBgCard] = useState(false);
   
   // Custom Extra Text Block Controls
@@ -261,6 +263,8 @@ export default function SimpleWorkspaceView() {
       
       setTitleSize(activePage.titleSize || 22);
       setTitleColor(activePage.titleColor || '#0f172a');
+      setTitlePosition(activePage.titlePosition || 'top');
+      setTitleBgCard(activePage.titleBgCard || false);
       setTextSize(activePage.textSize || 14);
       setTextColor(activePage.textColor || '#334155');
       setTextPosition(activePage.textPosition || 'top');
@@ -579,6 +583,8 @@ export default function SimpleWorkspaceView() {
       imageOffsetX,
       titleSize,
       titleColor,
+      titlePosition,
+      titleBgCard,
       textSize,
       textColor,
       textPosition,
@@ -951,29 +957,43 @@ export default function SimpleWorkspaceView() {
                 </div>
 
                 {/* Sheet Content container */}
-                <div className="px-6 pt-11 pb-11 h-full flex flex-col justify-between select-none text-right" dir={isRtl ? 'rtl' : 'ltr'}>
+                <div className="px-6 pt-11 pb-11 h-full flex flex-col justify-between select-none text-right relative" dir={isRtl ? 'rtl' : 'ltr'}>
                   
-                  {/* Text rendered at TOP if position is 'top' */}
-                  {(textPosition === 'top' || !textPosition) && (
-                    <div className={`mt-1 transition-all ${textBgCard ? 'bg-white/90 backdrop-blur-xs p-2.5 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
-                      {(customTitle || activePage.title) && (
+                  {/* TOP SECTION: Elements placed at 'top' */}
+                  <div className="space-y-1">
+                    {(titlePosition === 'top' || !titlePosition) && (customTitle || activePage.title) && (
+                      <div className={`transition-all text-center ${titleBgCard ? 'bg-white/90 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
                         <h3 
-                          className="font-display font-extrabold tracking-tight leading-snug mb-1"
+                          className="font-display font-extrabold tracking-tight leading-snug"
                           style={{ fontSize: `${titleSize || 22}px`, color: titleColor || '#0f172a' }}
                         >
                           {customTitle || activePage.title}
                         </h3>
-                      )}
-                      {(customText || activePage.textContent) && (
+                      </div>
+                    )}
+
+                    {textPosition === 'top' && (customText || activePage.textContent) && (
+                      <div className={`transition-all text-center ${textBgCard ? 'bg-white/90 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
                         <p 
-                          className="font-sans leading-relaxed"
+                          className="font-sans leading-relaxed whitespace-pre-wrap"
                           style={{ fontSize: `${textSize || 14}px`, color: textColor || '#334155' }}
                         >
                           {customText || activePage.textContent}
                         </p>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
+
+                    {extraTextPosition === 'top' && (extraText || activePage.extraText) && (
+                      <div className={`transition-all text-center ${extraTextBgCard ? 'bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
+                        <p 
+                          className="font-sans font-bold leading-relaxed whitespace-pre-wrap"
+                          style={{ fontSize: `${extraTextSize || 14}px`, color: extraTextColor || '#2563eb' }}
+                        >
+                          {extraText || activePage.extraText}
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Dual Image Illustration Concept / Full Color Image */}
                   <div className="flex-1 my-2 bg-slate-50/50 rounded-xl border border-slate-200/80 overflow-hidden relative flex flex-col items-center justify-center">
@@ -1032,30 +1052,49 @@ export default function SimpleWorkspaceView() {
                       </div>
                     )}
 
-                    {/* Text rendered inside MIDDLE if position is 'middle' */}
-                    {textPosition === 'middle' && (
-                      <div className={`absolute bottom-2 inset-x-2 transition-all ${textBgCard ? 'bg-white/90 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : 'text-center'}`}>
-                        {(customTitle || activePage.title) && (
-                          <h3 
-                            className="font-display font-extrabold tracking-tight leading-snug"
-                            style={{ fontSize: `${titleSize || 22}px`, color: titleColor || '#0f172a' }}
-                          >
-                            {customTitle || activePage.title}
-                          </h3>
-                        )}
-                        {(customText || activePage.textContent) && (
-                          <p 
-                            className="font-sans leading-relaxed"
-                            style={{ fontSize: `${textSize || 14}px`, color: textColor || '#334155' }}
-                          >
-                            {customText || activePage.textContent}
-                          </p>
-                        )}
+                    {/* OVERLAY POSITIONS inside central frame */}
+                    {/* 1. Title Overlay */}
+                    {(customTitle || activePage.title) && titlePosition && titlePosition !== 'top' && titlePosition !== 'bottom' && (
+                      <div 
+                        className={`transition-all ${
+                          titlePosition === 'top-right' ? 'absolute top-3 right-3 z-20 max-w-[45%]' :
+                          titlePosition === 'top-left' ? 'absolute top-3 left-3 z-20 max-w-[45%]' :
+                          titlePosition === 'bottom-right' ? 'absolute bottom-3 right-3 z-20 max-w-[45%]' :
+                          titlePosition === 'bottom-left' ? 'absolute bottom-3 left-3 z-20 max-w-[45%]' :
+                          'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center max-w-[85%]'
+                        } ${titleBgCard ? 'bg-white/95 backdrop-blur-xs p-2.5 rounded-xl border border-slate-200/80 shadow-md' : ''}`}
+                      >
+                        <h3 
+                          className="font-display font-extrabold tracking-tight leading-snug"
+                          style={{ fontSize: `${titleSize || 22}px`, color: titleColor || '#0f172a' }}
+                        >
+                          {customTitle || activePage.title}
+                        </h3>
                       </div>
                     )}
 
-                    {/* Extra Custom Floating / Positioned Text Overlay if set to floating/middle */}
-                    {(extraText || activePage.extraText) && (extraTextPosition === 'middle' || extraTextPosition === 'top-right' || extraTextPosition === 'top-left' || extraTextPosition === 'bottom-right' || extraTextPosition === 'bottom-left') && (
+                    {/* 2. Story Text Overlay */}
+                    {(customText || activePage.textContent) && textPosition && textPosition !== 'top' && textPosition !== 'bottom' && (
+                      <div 
+                        className={`transition-all ${
+                          textPosition === 'top-right' ? 'absolute top-3 right-3 z-20 max-w-[45%]' :
+                          textPosition === 'top-left' ? 'absolute top-3 left-3 z-20 max-w-[45%]' :
+                          textPosition === 'bottom-right' ? 'absolute bottom-3 right-3 z-20 max-w-[45%]' :
+                          textPosition === 'bottom-left' ? 'absolute bottom-3 left-3 z-20 max-w-[45%]' :
+                          'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center max-w-[85%]'
+                        } ${textBgCard ? 'bg-white/95 backdrop-blur-xs p-2.5 rounded-xl border border-slate-200/80 shadow-md' : ''}`}
+                      >
+                        <p 
+                          className="font-sans leading-relaxed whitespace-pre-wrap font-semibold"
+                          style={{ fontSize: `${textSize || 14}px`, color: textColor || '#334155' }}
+                        >
+                          {customText || activePage.textContent}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 3. Extra Text Overlay */}
+                    {(extraText || activePage.extraText) && extraTextPosition && extraTextPosition !== 'top' && extraTextPosition !== 'bottom' && (
                       <div 
                         className={`transition-all ${
                           extraTextPosition === 'top-right' ? 'absolute top-3 right-3 z-20 max-w-[45%]' :
@@ -1063,9 +1102,7 @@ export default function SimpleWorkspaceView() {
                           extraTextPosition === 'bottom-right' ? 'absolute bottom-3 right-3 z-20 max-w-[45%]' :
                           extraTextPosition === 'bottom-left' ? 'absolute bottom-3 left-3 z-20 max-w-[45%]' :
                           'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center max-w-[85%]'
-                        } ${
-                          extraTextBgCard ? 'bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-md' : ''
-                        }`}
+                        } ${extraTextBgCard ? 'bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-md' : ''}`}
                       >
                         <p 
                           className="font-sans font-bold leading-relaxed whitespace-pre-wrap"
@@ -1080,51 +1117,41 @@ export default function SimpleWorkspaceView() {
                     )}
                   </div>
 
-                  {/* Extra Custom Text rendered at TOP if position is 'top' */}
-                  {(extraText || activePage.extraText) && extraTextPosition === 'top' && (
-                    <div className={`mt-1 mb-1 text-center transition-all ${extraTextBgCard ? 'bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
-                      <p 
-                        className="font-sans font-bold leading-relaxed whitespace-pre-wrap"
-                        style={{ fontSize: `${extraTextSize || 14}px`, color: extraTextColor || '#2563eb' }}
-                      >
-                        {extraText || activePage.extraText}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Text rendered at BOTTOM if position is 'bottom' */}
-                  {textPosition === 'bottom' && (
-                    <div className={`mb-1 transition-all ${textBgCard ? 'bg-white/90 backdrop-blur-xs p-2.5 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
-                      {(customTitle || activePage.title) && (
+                  {/* BOTTOM SECTION: Elements placed at 'bottom' */}
+                  <div className="space-y-1">
+                    {titlePosition === 'bottom' && (customTitle || activePage.title) && (
+                      <div className={`transition-all text-center ${titleBgCard ? 'bg-white/90 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
                         <h3 
-                          className="font-display font-extrabold tracking-tight leading-snug mb-1"
+                          className="font-display font-extrabold tracking-tight leading-snug"
                           style={{ fontSize: `${titleSize || 22}px`, color: titleColor || '#0f172a' }}
                         >
                           {customTitle || activePage.title}
                         </h3>
-                      )}
-                      {(customText || activePage.textContent) && (
+                      </div>
+                    )}
+
+                    {textPosition === 'bottom' && (customText || activePage.textContent) && (
+                      <div className={`transition-all text-center ${textBgCard ? 'bg-white/90 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
                         <p 
-                          className="font-sans leading-relaxed"
+                          className="font-sans leading-relaxed whitespace-pre-wrap"
                           style={{ fontSize: `${textSize || 14}px`, color: textColor || '#334155' }}
                         >
                           {customText || activePage.textContent}
                         </p>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
 
-                  {/* Extra Custom Text rendered at BOTTOM if position is 'bottom' */}
-                  {(extraText || activePage.extraText) && extraTextPosition === 'bottom' && (
-                    <div className={`mt-1 mb-1 text-center transition-all ${extraTextBgCard ? 'bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
-                      <p 
-                        className="font-sans font-bold leading-relaxed whitespace-pre-wrap"
-                        style={{ fontSize: `${extraTextSize || 14}px`, color: extraTextColor || '#2563eb' }}
-                      >
-                        {extraText || activePage.extraText}
-                      </p>
-                    </div>
-                  )}
+                    {extraTextPosition === 'bottom' && (extraText || activePage.extraText) && (
+                      <div className={`transition-all text-center ${extraTextBgCard ? 'bg-white/95 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
+                        <p 
+                          className="font-sans font-bold leading-relaxed whitespace-pre-wrap"
+                          style={{ fontSize: `${extraTextSize || 14}px`, color: extraTextColor || '#2563eb' }}
+                        >
+                          {extraText || activePage.extraText}
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Optional Dash Alphabet Tracing Guides */}
                   {activePage.activity && activePage.activity.type === 'tracing' && (
@@ -1666,6 +1693,57 @@ export default function SimpleWorkspaceView() {
                               />
                             </div>
                           </div>
+
+                          {/* Title Independent Position Selector */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold text-right">
+                              {isAr ? 'موقع العنوان على الصفحة (منفصل):' : 'Title Position on Sheet (Independent):'}
+                            </label>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {[
+                                { pos: 'top-right', labelAr: '↗️ أعلى اليمين', labelEn: 'Top Right' },
+                                { pos: 'top', labelAr: '⬆️ أعلى الوسط', labelEn: 'Top Center' },
+                                { pos: 'top-left', labelAr: '↖️ أعلى اليسار', labelEn: 'Top Left' },
+                                { pos: 'middle', labelAr: '↕️ المنتصف', labelEn: 'Center Overlay' },
+                                { pos: 'bottom-right', labelAr: '↘️ أسفل اليمين', labelEn: 'Bottom Right' },
+                                { pos: 'bottom', labelAr: '⬇️ أسفل الوسط', labelEn: 'Bottom Center' },
+                                { pos: 'bottom-left', labelAr: '↙️ أسفل اليسار', labelEn: 'Bottom Left' }
+                              ].map((item) => (
+                                <button
+                                  key={item.pos}
+                                  type="button"
+                                  onClick={() => {
+                                    const p = item.pos as any;
+                                    setTitlePosition(p);
+                                    updatePageParam({ titlePosition: p });
+                                  }}
+                                  className={`py-1.5 px-2 text-[11px] font-bold rounded-lg transition border text-center ${
+                                    titlePosition === item.pos
+                                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {isAr ? item.labelAr : item.labelEn}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Title Background Box Toggle */}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <span className="text-xs font-sans text-slate-600 font-semibold">
+                              {isAr ? 'خلفية بيضاء مظللة خلف العنوان:' : 'White card background behind title:'}
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={titleBgCard}
+                              onChange={(e) => {
+                                setTitleBgCard(e.target.checked);
+                                updatePageParam({ titleBgCard: e.target.checked });
+                              }}
+                              className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
+                            />
+                          </div>
                         </div>
                       )}
 
@@ -1765,26 +1843,30 @@ export default function SimpleWorkspaceView() {
                             </div>
                           </div>
 
-                          {/* Text Position Selector */}
+                          {/* Text Independent Position Selector */}
                           <div className="space-y-1.5 pt-2 border-t border-slate-100">
                             <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold text-right">
-                              {isAr ? 'موقع النص على الصفحة:' : 'Text Position on Sheet:'}
+                              {isAr ? 'موقع النص التوجيهي على الصفحة (منفصل):' : 'Story Text Position on Sheet (Independent):'}
                             </label>
-                            <div className="grid grid-cols-3 gap-1.5">
+                            <div className="grid grid-cols-2 gap-1.5">
                               {[
-                                { pos: 'top', labelAr: '⬆️ الأعلى', labelEn: 'Top' },
-                                { pos: 'middle', labelAr: '↕️ المنتصف', labelEn: 'Center' },
-                                { pos: 'bottom', labelAr: '⬇️ الأسفل', labelEn: 'Bottom' }
+                                { pos: 'top-right', labelAr: '↗️ أعلى اليمين', labelEn: 'Top Right' },
+                                { pos: 'top', labelAr: '⬆️ أعلى الوسط', labelEn: 'Top Center' },
+                                { pos: 'top-left', labelAr: '↖️ أعلى اليسار', labelEn: 'Top Left' },
+                                { pos: 'middle', labelAr: '↕️ المنتصف', labelEn: 'Center Overlay' },
+                                { pos: 'bottom-right', labelAr: '↘️ أسفل اليمين', labelEn: 'Bottom Right' },
+                                { pos: 'bottom', labelAr: '⬇️ أسفل الوسط', labelEn: 'Bottom Center' },
+                                { pos: 'bottom-left', labelAr: '↙️ أسفل اليسار', labelEn: 'Bottom Left' }
                               ].map((item) => (
                                 <button
                                   key={item.pos}
                                   type="button"
                                   onClick={() => {
-                                    const p = item.pos as 'top' | 'middle' | 'bottom';
+                                    const p = item.pos as any;
                                     setTextPosition(p);
                                     updatePageParam({ textPosition: p });
                                   }}
-                                  className={`py-1.5 text-xs font-bold rounded-lg transition border ${
+                                  className={`py-1.5 px-2 text-[11px] font-bold rounded-lg transition border text-center ${
                                     textPosition === item.pos
                                       ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
                                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'

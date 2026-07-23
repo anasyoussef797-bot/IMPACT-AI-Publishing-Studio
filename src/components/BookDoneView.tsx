@@ -126,26 +126,73 @@ export default function BookDoneView() {
           </div>
         </div>
 
-        <!-- Body: Coloring Outline Image in Center above Tracing Letters -->
+        <!-- Body: Coloring Outline Image in Center with decoupled text positions -->
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center;">
           
+          <!-- Top Text Section -->
           <div>
-            ${p.title ? `<h2 style="font-size: ${p.titleSize || 22}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0 0 4px 0;">${p.title}</h2>` : ''}
-            ${p.textContent ? `<p style="font-size: ${p.textSize || 13}px; color: ${p.textColor || '#475569'}; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
-            ${p.extraText ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 13}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
+            ${p.title && (!p.titlePosition || p.titlePosition === 'top') ? `<h2 style="font-size: ${p.titleSize || 22}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0 0 4px 0; ${p.titleBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.title}</h2>` : ''}
+            ${p.textContent && (!p.textPosition || p.textPosition === 'top') ? `<p style="font-size: ${p.textSize || 13}px; color: ${p.textColor || '#475569'}; margin: 0 0 8px 0; ${p.textBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.textContent}</p>` : ''}
+            ${p.extraText && p.extraTextPosition === 'top' ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 13}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
           </div>
 
-          <!-- Center Black & White Outline Image or Full Color Image -->
+          <!-- Center Black & White Outline Image or Full Color Image with Overlay support -->
           ${p.illustrationUrl ? `
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 6px 0;">
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 6px 0; position: relative;">
               <img 
                 src="${outlineImages[idx] || p.illustrationUrl}" 
                 style="max-height: ${isFullColor ? '17.5cm' : '13.5cm'}; max-width: 17.5cm; object-fit: contain; display: block;" 
                 crossOrigin="anonymous" 
                 alt="رسمة التلوين" 
               />
+
+              <!-- Overlay Title -->
+              ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `
+                <div style="position: absolute; ${
+                  p.titlePosition === 'top-right' ? 'top: 10px; right: 10px;' :
+                  p.titlePosition === 'top-left' ? 'top: 10px; left: 10px;' :
+                  p.titlePosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
+                  p.titlePosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
+                  'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                } z-index: 10; ${p.titleBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
+                  <h2 style="font-size: ${p.titleSize || 22}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0;">${p.title}</h2>
+                </div>
+              ` : ''}
+
+              <!-- Overlay Story Text -->
+              ${p.textContent && p.textPosition && p.textPosition !== 'top' && p.textPosition !== 'bottom' ? `
+                <div style="position: absolute; ${
+                  p.textPosition === 'top-right' ? 'top: 10px; right: 10px;' :
+                  p.textPosition === 'top-left' ? 'top: 10px; left: 10px;' :
+                  p.textPosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
+                  p.textPosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
+                  'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                } z-index: 10; ${p.textBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
+                  <p style="font-size: ${p.textSize || 13}px; font-weight: 600; color: ${p.textColor || '#475569'}; margin: 0;">${p.textContent}</p>
+                </div>
+              ` : ''}
+
+              <!-- Overlay Extra Text -->
+              ${p.extraText && p.extraTextPosition && p.extraTextPosition !== 'top' && p.extraTextPosition !== 'bottom' ? `
+                <div style="position: absolute; ${
+                  p.extraTextPosition === 'top-right' ? 'top: 10px; right: 10px;' :
+                  p.extraTextPosition === 'top-left' ? 'top: 10px; left: 10px;' :
+                  p.extraTextPosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
+                  p.extraTextPosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
+                  'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                } z-index: 10; ${p.extraTextBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
+                  <p style="font-size: ${p.extraTextSize || 13}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p>
+                </div>
+              ` : ''}
             </div>
           ` : ''}
+
+          <!-- Bottom Text Section -->
+          <div>
+            ${p.title && p.titlePosition === 'bottom' ? `<h2 style="font-size: ${p.titleSize || 22}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 4px 0; ${p.titleBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.title}</h2>` : ''}
+            ${p.textContent && p.textPosition === 'bottom' ? `<p style="font-size: ${p.textSize || 13}px; color: ${p.textColor || '#475569'}; margin: 4px 0; ${p.textBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.textContent}</p>` : ''}
+            ${p.extraText && (p.extraTextPosition === 'bottom' || !p.extraTextPosition) ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 13}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
+          </div>
 
           <!-- Character Tracing Box directly below the Outline Image -->
           ${p.activity && p.activity.type === 'tracing' ? `
@@ -335,25 +382,73 @@ export default function BookDoneView() {
             </div>
           </div>
 
-          <!-- Content Body -->
+          <!-- Content Body with decoupled text positions -->
           <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; padding: 10px 0;">
+            
+            <!-- Top Text Section -->
             <div>
-              ${p.title ? `<h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0 0 4px 0;">${p.title}</h2>` : ''}
-              ${p.textContent ? `<p style="font-size: ${p.textSize || 14}px; color: ${p.textColor || '#475569'}; margin: 0 0 8px 0;">${p.textContent}</p>` : ''}
-              ${p.extraText ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
+              ${p.title && (!p.titlePosition || p.titlePosition === 'top') ? `<h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0 0 4px 0; ${p.titleBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.title}</h2>` : ''}
+              ${p.textContent && (!p.textPosition || p.textPosition === 'top') ? `<p style="font-size: ${p.textSize || 14}px; color: ${p.textColor || '#475569'}; margin: 0 0 8px 0; ${p.textBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.textContent}</p>` : ''}
+              ${p.extraText && p.extraTextPosition === 'top' ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
             </div>
 
-            <!-- Center Image (Outline or Full Color) -->
+            <!-- Center Image (Outline or Full Color) with Overlay support -->
             ${p.illustrationUrl ? `
-              <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 8px 0;">
+              <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 8px 0; position: relative;">
                 <img 
                   src="${outlineImages[idx] || p.illustrationUrl}" 
                   style="max-height: ${isFullColor ? '650px' : '520px'}; max-width: 680px; object-fit: contain; display: block;" 
                   crossOrigin="anonymous" 
                   alt="رسمة التلوين" 
                 />
+
+                <!-- Overlay Title -->
+                ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `
+                  <div style="position: absolute; ${
+                    p.titlePosition === 'top-right' ? 'top: 10px; right: 10px;' :
+                    p.titlePosition === 'top-left' ? 'top: 10px; left: 10px;' :
+                    p.titlePosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
+                    p.titlePosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
+                    'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                  } z-index: 10; ${p.titleBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
+                    <h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0;">${p.title}</h2>
+                  </div>
+                ` : ''}
+
+                <!-- Overlay Story Text -->
+                ${p.textContent && p.textPosition && p.textPosition !== 'top' && p.textPosition !== 'bottom' ? `
+                  <div style="position: absolute; ${
+                    p.textPosition === 'top-right' ? 'top: 10px; right: 10px;' :
+                    p.textPosition === 'top-left' ? 'top: 10px; left: 10px;' :
+                    p.textPosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
+                    p.textPosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
+                    'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                  } z-index: 10; ${p.textBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
+                    <p style="font-size: ${p.textSize || 14}px; font-weight: 600; color: ${p.textColor || '#475569'}; margin: 0;">${p.textContent}</p>
+                  </div>
+                ` : ''}
+
+                <!-- Overlay Extra Text -->
+                ${p.extraText && p.extraTextPosition && p.extraTextPosition !== 'top' && p.extraTextPosition !== 'bottom' ? `
+                  <div style="position: absolute; ${
+                    p.extraTextPosition === 'top-right' ? 'top: 10px; right: 10px;' :
+                    p.extraTextPosition === 'top-left' ? 'top: 10px; left: 10px;' :
+                    p.extraTextPosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
+                    p.extraTextPosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
+                    'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                  } z-index: 10; ${p.extraTextBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
+                    <p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p>
+                  </div>
+                ` : ''}
               </div>
             ` : ''}
+
+            <!-- Bottom Text Section -->
+            <div>
+              ${p.title && p.titlePosition === 'bottom' ? `<h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 4px 0; ${p.titleBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.title}</h2>` : ''}
+              ${p.textContent && p.textPosition === 'bottom' ? `<p style="font-size: ${p.textSize || 14}px; color: ${p.textColor || '#475569'}; margin: 4px 0; ${p.textBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.textContent}</p>` : ''}
+              ${p.extraText && (p.extraTextPosition === 'bottom' || !p.extraTextPosition) ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
+            </div>
 
             <!-- Tracing Box directly below Outline Image -->
             ${p.activity && p.activity.type === 'tracing' ? `

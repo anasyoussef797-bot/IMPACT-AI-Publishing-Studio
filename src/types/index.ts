@@ -105,7 +105,9 @@ export interface Page {
   textColor?: string; // hex string e.g. '#0f172a'
   titleSize?: number; // font size for title in px e.g. 18, 22, 28, 36
   titleColor?: string; // hex string for title
-  textPosition?: 'top' | 'middle' | 'bottom';
+  titlePosition?: 'top' | 'middle' | 'bottom' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  titleBgCard?: boolean; // card background for title
+  textPosition?: 'top' | 'middle' | 'bottom' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
   textBgCard?: boolean; // translucent card background for text
   extraText?: string; // custom extra text block
   extraTextSize?: number; // font size for extra text
