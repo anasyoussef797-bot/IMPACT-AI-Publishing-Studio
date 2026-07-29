@@ -110,13 +110,8 @@ export default function BookDoneView() {
             ` : ''}
           </div>
 
-          <!-- Top Center: Book Title & Page Badge -->
-          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 0 12px; margin-top: 6px;">
-            <span style="font-size: 14px; font-weight: 800; color: #1e293b; margin-bottom: 6px; display: block;">${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
-            <span style="font-size: 11px; font-weight: bold; color: #475569; background: #f1f5f9; padding: 4px 12px; border-radius: 12px; border: 1px solid #e2e8f0; display: inline-block;">
-              ${isAr ? `صفحة ${idx + 1}` : `Page ${idx + 1}`}
-            </span>
-          </div>
+          <!-- Top Center: Empty spacer (Book title & page number removed) -->
+          <div style="flex: 1;"></div>
 
           <!-- Top Left: Nursery / School Logo -->
           <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 6.5cm; flex-shrink: 0;">
@@ -366,13 +361,8 @@ export default function BookDoneView() {
               ` : ''}
             </div>
 
-            <!-- Top Center: Book Title & Page Badge -->
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 0 12px; margin-top: 8px;">
-              <span style="font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 6px; display: block;">${currentBook.metadata.customBookName || currentBook.metadata.title}</span>
-              <span style="font-size: 12px; font-weight: bold; color: #475569; background: #f1f5f9; padding: 4px 12px; border-radius: 12px; border: 1px solid #e2e8f0; display: inline-block;">
-                ${isAr ? `صفحة ${idx + 1}` : `Page ${idx + 1}`}
-              </span>
-            </div>
+            <!-- Top Center: Empty spacer (Book title & page number removed) -->
+            <div style="flex: 1;"></div>
 
             <!-- Top Left: Nursery / School Logo -->
             <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; width: 230px; flex-shrink: 0;">

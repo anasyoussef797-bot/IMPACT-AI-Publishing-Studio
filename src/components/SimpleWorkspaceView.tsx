@@ -944,9 +944,8 @@ export default function SimpleWorkspaceView() {
                   <span className="absolute bottom-1 right-2 text-[8px] font-mono text-cyan-400/30 select-none">هامش القص (Bleed Limits)</span>
                 </div>
 
-                {/* Real-time Fixed Header (اسم الكتاب) */}
-                <div className="absolute top-4 left-6 right-6 flex items-center justify-between border-b border-slate-100 pb-1.5 text-[10px] font-bold text-slate-400 select-none" dir="rtl">
-                  <span>📖 {customBookName || (isAr ? 'كتاب التلوين التعليمي' : 'Coloring Workbook')}</span>
+                {/* Real-time Fixed Header */}
+                <div className="absolute top-4 left-6 right-6 flex items-center justify-end border-b border-slate-100 pb-1.5 text-[10px] font-bold text-slate-400 select-none" dir="rtl">
                   <span className="font-mono text-[9px]">A4</span>
                 </div>
 
