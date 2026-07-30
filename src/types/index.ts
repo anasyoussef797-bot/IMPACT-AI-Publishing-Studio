@@ -135,6 +135,8 @@ export interface Page {
   pedagogicalCritique?: string;
   colorsUsed?: string[];
   imageScale?: number; // e.g., 50 to 150 (%)
+  imageScaleX?: number; // e.g., 20 to 300 (%) for freeform horizontal stretch
+  imageScaleY?: number; // e.g., 20 to 300 (%) for freeform vertical stretch
   imageOffsetY?: number; // vertical offset in % or px
   imageOffsetX?: number; // horizontal offset in % or px
   topMargin?: '0cm' | '1.5cm' | '3cm' | '5cm' | number; // page top margin control

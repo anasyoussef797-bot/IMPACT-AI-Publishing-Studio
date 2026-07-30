@@ -18,6 +18,7 @@ import { Page } from '../types';
 import { ActivityWorksheetView } from './ActivityWorksheetView';
 import { ActivityWorksheetEditor } from './ActivityWorksheetEditor';
 import { TextPageEditor } from './TextPageEditor';
+import { ImageCropAndRemoveBgModal } from './ImageCropAndRemoveBgModal';
 
 export default function SimpleWorkspaceView() {
   const { t, isRtl, uiLanguage } = useTranslation();
@@ -53,17 +54,26 @@ export default function SimpleWorkspaceView() {
 
   // Full Color & Custom Page Layout Controls
   const [imageScale, setImageScale] = useState(100);
+  const [imageScaleX, setImageScaleX] = useState(100);
+  const [imageScaleY, setImageScaleY] = useState(100);
   const [imageOffsetY, setImageOffsetY] = useState(0);
   const [imageOffsetX, setImageOffsetX] = useState(0);
   
-  // Interactive Mouse Dragging & Resizing States on Canvas
+  // Interactive Mouse Dragging & Freeform Stretch/Compress States on Canvas
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [dragStartOffset, setDragStartOffset] = useState({ x: 0, y: 0 });
   const [isResizingImage, setIsResizingImage] = useState(false);
+  const [stretchDirection, setStretchDirection] = useState<'x' | 'y' | 'both' | null>(null);
   const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
   const [resizeStartScale, setResizeStartScale] = useState(100);
+  const [resizeStartScaleX, setResizeStartScaleX] = useState(100);
+  const [resizeStartScaleY, setResizeStartScaleY] = useState(100);
   const [isImageHovered, setIsImageHovered] = useState(false);
+
+  // Pre-Insert & On-Page Image Crop & Remove BG Modal State
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState('');
 
   // Top Page Margin Control (0cm, 1.5cm, 3cm, 5cm)
   const [topMargin, setTopMargin] = useState<'0cm' | '1.5cm' | '3cm' | '5cm'>('3cm');
@@ -275,6 +285,8 @@ export default function SimpleWorkspaceView() {
       setEnableTracing(!!activePage.activity && activePage.activity.type === 'tracing');
       setTracingChar(activePage.activity?.contentData?.character || 'أ');
       setImageScale(activePage.imageScale || 100);
+      setImageScaleX(activePage.imageScaleX || 100);
+      setImageScaleY(activePage.imageScaleY || 100);
       setImageOffsetY(activePage.imageOffsetY || 0);
       setImageOffsetX(activePage.imageOffsetX || 0);
       setTopMargin((activePage.topMargin as any) || '3cm');
@@ -303,7 +315,7 @@ export default function SimpleWorkspaceView() {
     }
   }, [selectedPageId, activePage]);
 
-  // Window mouse listener for interactive canvas image dragging & corner resizing
+  // Window mouse listener for interactive canvas image dragging & freeform stretching
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDraggingImage) {
@@ -316,9 +328,23 @@ export default function SimpleWorkspaceView() {
       } else if (isResizingImage) {
         const dx = e.clientX - resizeStartPos.x;
         const dy = e.clientY - resizeStartPos.y;
-        const distChange = Math.round((dx + dy) / 2);
-        const newScale = Math.max(20, Math.min(300, resizeStartScale + distChange));
-        setImageScale(newScale);
+
+        if (stretchDirection === 'x') {
+          const newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
+          setImageScaleX(newScaleX);
+        } else if (stretchDirection === 'y') {
+          const newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
+          setImageScaleY(newScaleY);
+        } else {
+          // both/corners
+          const distChange = Math.round((dx + dy) / 2);
+          const newScale = Math.max(20, Math.min(300, resizeStartScale + distChange));
+          const newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
+          const newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
+          setImageScale(newScale);
+          setImageScaleX(newScaleX);
+          setImageScaleY(newScaleY);
+        }
       }
     };
 
@@ -329,7 +355,7 @@ export default function SimpleWorkspaceView() {
       }
       if (isResizingImage) {
         setIsResizingImage(false);
-        updatePageParam({ imageScale });
+        updatePageParam({ imageScale, imageScaleX, imageScaleY });
       }
     };
 
@@ -342,7 +368,7 @@ export default function SimpleWorkspaceView() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDraggingImage, isResizingImage, dragStartPos, dragStartOffset, resizeStartPos, resizeStartScale, imageOffsetX, imageOffsetY, imageScale]);
+  }, [isDraggingImage, isResizingImage, dragStartPos, dragStartOffset, resizeStartPos, resizeStartScale, resizeStartScaleX, resizeStartScaleY, stretchDirection, imageOffsetX, imageOffsetY, imageScale, imageScaleX, imageScaleY]);
 
   const handleImageMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -351,12 +377,15 @@ export default function SimpleWorkspaceView() {
     setDragStartOffset({ x: imageOffsetX, y: imageOffsetY });
   };
 
-  const handleResizeStart = (e: React.MouseEvent) => {
+  const handleResizeStart = (e: React.MouseEvent, dir: 'x' | 'y' | 'both' = 'both') => {
     e.stopPropagation();
     e.preventDefault();
     setIsResizingImage(true);
+    setStretchDirection(dir);
     setResizeStartPos({ x: e.clientX, y: e.clientY });
     setResizeStartScale(imageScale);
+    setResizeStartScaleX(imageScaleX);
+    setResizeStartScaleY(imageScaleY);
   };
 
   const handleImageWheel = (e: React.WheelEvent) => {
@@ -369,9 +398,11 @@ export default function SimpleWorkspaceView() {
 
   const handleAutoFitImage = () => {
     setImageScale(100);
+    setImageScaleX(100);
+    setImageScaleY(100);
     setImageOffsetX(0);
     setImageOffsetY(0);
-    updatePageParam({ imageScale: 100, imageOffsetX: 0, imageOffsetY: 0 });
+    updatePageParam({ imageScale: 100, imageScaleX: 100, imageScaleY: 100, imageOffsetX: 0, imageOffsetY: 0 });
   };
 
   // Kids smart outline extractor & dynamic color palette analyzer effect
@@ -616,7 +647,7 @@ export default function SimpleWorkspaceView() {
     }
   };
 
-  // Handle local image file uploads
+  // Handle local image file uploads with pre-placement crop & bg removal modal
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -625,14 +656,13 @@ export default function SimpleWorkspaceView() {
     reader.onload = (event) => {
       const b64Url = event.target?.result as string;
       if (activePage && b64Url) {
-        updatePage(activePage.id, {
-          illustrationUrl: b64Url,
-          layoutType: 'coloring'
-        });
-        addNotification('success', isAr ? 'تم رفع الصورة وتحديث الصفحة بنجاح!' : 'Your coloring picture was uploaded successfully!');
+        // Open crop & bg removal pre-processing modal BEFORE placing image on page!
+        setCropImageSrc(b64Url);
+        setIsCropModalOpen(true);
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleApplyTemplate = (url: string, prompt: string) => {
@@ -1169,8 +1199,22 @@ export default function SimpleWorkspaceView() {
                         <div className={`absolute top-2 left-1/2 -translate-x-1/2 z-30 transition-all duration-200 flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md text-white px-3 py-1 rounded-full shadow-xl border border-white/20 text-xs ${isImageHovered || isDraggingImage || isResizingImage ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
                           <span className="text-[10px] font-bold text-purple-300 flex items-center gap-1">
                             <Move className="w-3 h-3 animate-pulse" />
-                            {isAr ? 'اسحب بالفأرة للتحريك' : 'Drag with Mouse'}
+                            {isAr ? 'اسحب للتحريك' : 'Drag'}
                           </span>
+                          <span className="w-px h-3 bg-white/20" />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCropImageSrc(activePage.illustrationUrl || '');
+                              setIsCropModalOpen(true);
+                            }}
+                            className="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-full text-[10px] font-black transition flex items-center gap-1 shadow-xs"
+                            title={isAr ? 'قص وتعديل وإزالة الخلفية' : 'Crop & Clean BG'}
+                          >
+                            <Scissors className="w-3 h-3" />
+                            {isAr ? '✂️ قص / إزالة الخلفية' : 'Crop / PNG'}
+                          </button>
                           <span className="w-px h-3 bg-white/20" />
                           <button
                             type="button"
@@ -1214,11 +1258,11 @@ export default function SimpleWorkspaceView() {
                           </button>
                         </div>
 
-                        {/* Draggable & Resizable Image Element */}
+                        {/* Draggable & Freeform Resizable Image Element */}
                         <div 
                           className={`relative max-w-full max-h-full flex items-center justify-center transition-shadow ${isImageHovered || isDraggingImage || isResizingImage ? 'ring-2 ring-purple-500/80 ring-offset-2 rounded-lg' : ''}`}
                           style={{
-                            transform: `scale(${imageScale / 100}) translate(${imageOffsetX}px, ${imageOffsetY}px)`,
+                            transform: `scale(${imageScale / 100}) scale(${(imageScaleX || 100) / 100}, ${(imageScaleY || 100) / 100}) translate(${imageOffsetX}px, ${imageOffsetY}px)`,
                             cursor: isDraggingImage ? 'grabbing' : 'grab',
                             touchAction: 'none'
                           }}
@@ -1262,28 +1306,55 @@ export default function SimpleWorkspaceView() {
                             </>
                           )}
 
-                          {/* Corner handles for interactive mouse drag resizing */}
+                          {/* 8 Freeform Stretch & Resize Handles (4 Corners + 4 Edge Sides) */}
                           {(isImageHovered || isDraggingImage || isResizingImage) && (
                             <>
+                              {/* Corners */}
                               <div 
-                                onMouseDown={handleResizeStart}
+                                onMouseDown={(e) => handleResizeStart(e, 'both')}
                                 className="absolute -top-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم' : 'Resize'}
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة' : 'Resize Corner'}
                               />
                               <div 
-                                onMouseDown={handleResizeStart}
+                                onMouseDown={(e) => handleResizeStart(e, 'both')}
                                 className="absolute -top-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم' : 'Resize'}
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة' : 'Resize Corner'}
                               />
                               <div 
-                                onMouseDown={handleResizeStart}
+                                onMouseDown={(e) => handleResizeStart(e, 'both')}
                                 className="absolute -bottom-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم' : 'Resize'}
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة' : 'Resize Corner'}
                               />
                               <div 
-                                onMouseDown={handleResizeStart}
+                                onMouseDown={(e) => handleResizeStart(e, 'both')}
                                 className="absolute -bottom-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم' : 'Resize'}
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة' : 'Resize Corner'}
+                              />
+
+                              {/* Freeform Side Stretch Handles */}
+                              {/* Top Side (Stretch Vertical Y) */}
+                              <div 
+                                onMouseDown={(e) => handleResizeStart(e, 'y')}
+                                className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-10 h-3 bg-amber-500 border border-white rounded-full shadow-lg cursor-ns-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
+                                title={isAr ? 'مط/كمش رأسي (Vertical Stretch Y)' : 'Vertical Stretch Y'}
+                              />
+                              {/* Bottom Side (Stretch Vertical Y) */}
+                              <div 
+                                onMouseDown={(e) => handleResizeStart(e, 'y')}
+                                className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-10 h-3 bg-amber-500 border border-white rounded-full shadow-lg cursor-ns-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
+                                title={isAr ? 'مط/كمش رأسي (Vertical Stretch Y)' : 'Vertical Stretch Y'}
+                              />
+                              {/* Left Side (Stretch Horizontal X) */}
+                              <div 
+                                onMouseDown={(e) => handleResizeStart(e, 'x')}
+                                className="absolute top-1/2 -left-2.5 -translate-y-1/2 w-3 h-10 bg-amber-500 border border-white rounded-full shadow-lg cursor-ew-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
+                                title={isAr ? 'مط/كمش أفقي (Horizontal Stretch X)' : 'Horizontal Stretch X'}
+                              />
+                              {/* Right Side (Stretch Horizontal X) */}
+                              <div 
+                                onMouseDown={(e) => handleResizeStart(e, 'x')}
+                                className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-3 h-10 bg-amber-500 border border-white rounded-full shadow-lg cursor-ew-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
+                                title={isAr ? 'مط/كمش أفقي (Horizontal Stretch X)' : 'Horizontal Stretch X'}
                               />
                             </>
                           )}
@@ -1716,20 +1787,33 @@ export default function SimpleWorkspaceView() {
                     {isFullColorMode ? (
                       <div className="bg-white border border-purple-200 p-5 rounded-2xl shadow-xs space-y-4">
                         <h4 className="text-xs uppercase font-mono font-bold text-purple-700 tracking-wider flex items-center justify-end gap-1.5 border-b border-purple-100 pb-2.5">
-                          {isAr ? 'أدوات التحكم بالصورة الملونة' : 'Full Color Image Adjustments'}
+                          {isAr ? 'أدوات قص ومط وتحريك الصورة' : 'Image Crop, Stretch & Adjustments'}
                           <Sliders className="w-4 h-4 text-purple-600" />
                         </h4>
+
+                        {/* Crop & Remove BG Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCropImageSrc(activePage?.illustrationUrl || '');
+                            setIsCropModalOpen(true);
+                          }}
+                          className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
+                        >
+                          <Scissors className="w-4 h-4" />
+                          {isAr ? '✂️ قص وتعديل الصورة وإزالة الخلفية (PNG)' : '✂️ Crop & Remove Background (PNG)'}
+                        </button>
 
                         {/* Mouse Interaction Tip Box */}
                         <div className="bg-purple-50/80 border border-purple-200 p-3 rounded-xl text-right text-[11px] text-purple-900 leading-relaxed space-y-1">
                           <div className="font-bold flex items-center justify-end gap-1 text-purple-700">
-                            {isAr ? '💡 التحكم المباشر بالفأرة على الصفحة:' : '💡 Direct Mouse Controls:'}
+                            {isAr ? '💡 حرية المط والكمش بجميع الاتجاهات:' : '💡 Freeform Stretch in All Directions:'}
                             <Move className="w-3.5 h-3.5" />
                           </div>
                           <p className="text-[10px] text-purple-800">
                             {isAr 
-                              ? 'يمكنك سحب الصورة مباشرة بالفأرة على الورقة، أو استخدام النقاط الخمسة على زوايا الصورة للتكبير والتصغير، أو عجلة الفأرة (Scroll).'
-                              : 'Drag image directly on page with mouse, use corner handles to resize, or use mouse scroll wheel.'}
+                              ? 'امسك بالفأرة أي جانب من الأجناب الأربعة للصورة لمطها أو كمشها بالاتجاه الذي يناسبك، أو اسحب المقابض الأربعة في الزوايا.'
+                              : 'Drag any of the 4 side handles to stretch/compress horizontally or vertically, or use the 4 corner handles.'}
                           </p>
                         </div>
 
@@ -1743,13 +1827,13 @@ export default function SimpleWorkspaceView() {
                           {isAr ? '⚡ ضبط تلقائي لحجم الصورة على الصفحة' : '⚡ Auto-fit Image to Page'}
                         </button>
 
-                        {/* Image Scale Slider */}
+                        {/* Image Scale Slider (Uniform) */}
                         <div className="space-y-1.5">
                           <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
                             <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs">{imageScale}%</span>
                             <span className="flex items-center gap-1">
                               <ZoomIn className="w-3.5 h-3.5 text-purple-500" />
-                              {isAr ? 'حجم وتكبير الصورة (Scale):' : 'Image Scale:'}
+                              {isAr ? 'التكبير والتصغير الشامل (Overall Scale):' : 'Overall Scale:'}
                             </span>
                           </div>
                           <input
@@ -1763,6 +1847,52 @@ export default function SimpleWorkspaceView() {
                               updatePageParam({ imageScale: val });
                             }}
                             className="w-full accent-purple-600 cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Freeform Horizontal Stretch X Slider */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                            <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-xs">{imageScaleX}%</span>
+                            <span className="flex items-center gap-1">
+                              <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                              {isAr ? 'المط / الكمش الأفقي (Horizontal Stretch X):' : 'Horizontal Stretch (X):'}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="20"
+                            max="300"
+                            value={imageScaleX}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setImageScaleX(val);
+                              updatePageParam({ imageScaleX: val });
+                            }}
+                            className="w-full accent-amber-500 cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Freeform Vertical Stretch Y Slider */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                            <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-xs">{imageScaleY}%</span>
+                            <span className="flex items-center gap-1">
+                              <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                              {isAr ? 'المط / الكمش الرأسي (Vertical Stretch Y):' : 'Vertical Stretch (Y):'}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="20"
+                            max="300"
+                            value={imageScaleY}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setImageScaleY(val);
+                              updatePageParam({ imageScaleY: val });
+                            }}
+                            className="w-full accent-amber-500 cursor-pointer"
                           />
                         </div>
 
@@ -1815,16 +1945,11 @@ export default function SimpleWorkspaceView() {
                         {/* Reset Button */}
                         <button
                           type="button"
-                          onClick={() => {
-                            setImageScale(100);
-                            setImageOffsetY(0);
-                            setImageOffsetX(0);
-                            updatePageParam({ imageScale: 100, imageOffsetY: 0, imageOffsetX: 0 });
-                          }}
+                          onClick={handleAutoFitImage}
                           className="w-full py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 border border-purple-200"
                         >
                           <Maximize2 className="w-3.5 h-3.5" />
-                          {isAr ? 'إعادة ضبط وضع الصورة للأصل' : 'Reset Image Position'}
+                          {isAr ? 'إعادة ضبط حجم ونسب الصورة للأصل' : 'Reset Image Scale & Aspect'}
                         </button>
                       </div>
                     ) : (
@@ -2696,6 +2821,21 @@ export default function SimpleWorkspaceView() {
       <PdfImportModal
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
+      />
+
+      <ImageCropAndRemoveBgModal
+        isOpen={isCropModalOpen}
+        onClose={() => setIsCropModalOpen(false)}
+        imageUrl={cropImageSrc || activePage?.illustrationUrl || ''}
+        isAr={isAr}
+        onApply={(newImageDataUrl) => {
+          if (activePage) {
+            updatePage(activePage.id, {
+              illustrationUrl: newImageDataUrl,
+            });
+            addNotification('success', isAr ? 'تم حفظ وتحديث الصورة وتفريغ خلفيتها بنجاح!' : 'Image cropped & background removed successfully!');
+          }
+        }}
       />
 
     </div>
