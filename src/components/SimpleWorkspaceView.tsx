@@ -15,13 +15,18 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import PdfImportModal from './PdfImportModal';
 import { Page } from '../types';
+import { ActivityWorksheetView } from './ActivityWorksheetView';
+import { ActivityWorksheetEditor } from './ActivityWorksheetEditor';
+import { TextPageEditor } from './TextPageEditor';
 
 export default function SimpleWorkspaceView() {
   const { t, isRtl, uiLanguage } = useTranslation();
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const { 
     currentBook, 
-    addBlankPage, 
+    addBlankPage,
+    addTextPage,
+    addActivityPage, 
     updatePage, 
     deletePage, 
     generatePageAsset, 
@@ -616,10 +621,32 @@ export default function SimpleWorkspaceView() {
     addNotification('success', isAr ? 'تم حفظ تعديلات الصفحة بنجاح!' : 'Page updates saved successfully!');
   };
 
-  // Add standard new blank page
+  // Add standard new blank coloring page
   const handleAddPage = () => {
     addBlankPage();
-    addNotification('success', isAr ? 'تمت إضافة صفحة جديدة فارغة!' : 'New blank page added!');
+    addNotification('success', isAr ? 'تمت إضافة صفحة تلوين جديدة!' : 'New coloring page added!');
+    setTimeout(() => {
+      if (currentBook.pages.length > 0) {
+        setSelectedPageId(currentBook.pages[currentBook.pages.length - 1].id);
+      }
+    }, 100);
+  };
+
+  // Add text-only page
+  const handleAddTextPage = () => {
+    addTextPage();
+    addNotification('success', isAr ? 'تمت إضافة صفحة نصية جديدة!' : 'New text page added!');
+    setTimeout(() => {
+      if (currentBook.pages.length > 0) {
+        setSelectedPageId(currentBook.pages[currentBook.pages.length - 1].id);
+      }
+    }, 100);
+  };
+
+  // Add activity worksheet page (with customizable boxes/rectangles)
+  const handleAddActivityPage = () => {
+    addActivityPage();
+    addNotification('success', isAr ? 'تمت إضافة صفحة أنشطة ورسومات جديدة!' : 'New activity worksheet page added!');
     setTimeout(() => {
       if (currentBook.pages.length > 0) {
         setSelectedPageId(currentBook.pages[currentBook.pages.length - 1].id);
@@ -848,25 +875,39 @@ export default function SimpleWorkspaceView() {
             <span className="text-xs uppercase font-mono font-bold text-slate-400 tracking-wider">
               {isAr ? 'صفحات وفصول الكتاب:' : 'Book Pages:'} ({totalPagesCount})
             </span>
+          </div>
+
+          {/* Quick Page Type Creator Button Bar */}
+          <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
             <button
               onClick={handleAddPage}
-              className="flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-800 bg-brand-50 hover:bg-brand-100/80 px-2.5 py-1 rounded transition"
-              title={isAr ? 'إضافة صفحة تلوين جديدة' : 'Add new page'}
+              className="py-2 px-1 bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-lg text-brand-700 font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition shadow-2xs"
+              title={isAr ? 'إضافة صفحة رسم وتلوين جديدة' : 'Add Coloring Page'}
             >
-              <Plus className="w-3.5 h-3.5" />
-              {isAr ? 'إضافة صفحة' : 'Add Page'}
+              <Plus className="w-3.5 h-3.5 text-brand-600" />
+              <span>{isAr ? 'صفحة تلوين' : 'Coloring Page'}</span>
+            </button>
+
+            <button
+              onClick={handleAddTextPage}
+              className="py-2 px-1 bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-lg text-sky-700 font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition shadow-2xs"
+              title={isAr ? 'إضافة صفحة نصوص وقراءة فقط' : 'Add Text-Only Page'}
+            >
+              <Type className="w-3.5 h-3.5 text-sky-600" />
+              <span>{isAr ? 'صفحة نصية' : 'Text Page'}</span>
+            </button>
+
+            <button
+              onClick={handleAddActivityPage}
+              className="py-2 px-1 bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg text-purple-700 font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition shadow-2xs"
+              title={isAr ? 'إضافة صفحة أنشطة ومربعات متحكم بها' : 'Add Activity Worksheet Page'}
+            >
+              <Layers className="w-3.5 h-3.5 text-purple-600" />
+              <span>{isAr ? 'صفحة أنشطة' : 'Activity Page'}</span>
             </button>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2.5 max-h-[580px] overflow-y-auto pr-1">
-            {/* Prominent Add Page Card placed at the top */}
-            <button
-              onClick={handleAddPage}
-              className="w-full py-3.5 px-4 border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-xl flex items-center justify-center gap-2 text-indigo-600 hover:text-indigo-800 bg-indigo-50/60 hover:bg-indigo-100/80 transition shadow-xs group"
-            >
-              <Plus className="w-5 h-5 text-indigo-600 group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-bold font-sans">{isAr ? '➕ أضف صفحة جديدة للكتاب' : '➕ Add New Page to Book'}</span>
-            </button>
 
             {currentBook.pages.map((p) => {
               const isActive = activePage?.id === p.id;
@@ -956,9 +997,38 @@ export default function SimpleWorkspaceView() {
                 </div>
 
                 {/* Sheet Content container */}
-                <div className="px-6 pt-11 pb-11 h-full flex flex-col justify-between select-none text-right relative" dir={isRtl ? 'rtl' : 'ltr'}>
+                <div className="px-6 pt-11 pb-11 h-full flex flex-col justify-between select-none text-right relative overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
                   
-                  {/* TOP SECTION: Elements placed at 'top' */}
+                  {activePage.layoutType === 'activity-worksheet' ? (
+                    <ActivityWorksheetView config={activePage.activityWorksheet} isAr={isAr} />
+                  ) : activePage.layoutType === 'text-only' ? (
+                    <div className="w-full h-full flex flex-col justify-between p-6 bg-white rounded-xl select-none text-right" dir={isRtl ? 'rtl' : 'ltr'}>
+                      <div>
+                        <h2 
+                          className="font-display font-extrabold tracking-tight leading-snug mb-4 text-center"
+                          style={{ fontSize: `${titleSize || activePage.titleSize || 26}px`, color: titleColor || activePage.titleColor || '#0f172a' }}
+                        >
+                          {customTitle || activePage.title || (isAr ? 'عنوان الصفحة النصية' : 'Text Page Title')}
+                        </h2>
+                        
+                        <div className={`p-5 rounded-xl leading-relaxed whitespace-pre-wrap ${textBgCard || activePage.textBgCard ? 'bg-slate-50 border border-slate-200 shadow-2xs' : ''}`}>
+                          <p style={{ fontSize: `${textSize || activePage.textSize || 16}px`, color: textColor || activePage.textColor || '#334155' }}>
+                            {customText || activePage.textContent || (isAr ? 'أدخل النص التعليمي أو القصة هنا...' : 'Enter text content here...')}
+                          </p>
+                        </div>
+                      </div>
+
+                      {(extraText || activePage.extraText) && (
+                        <div className={`mt-4 p-4 rounded-xl ${extraTextBgCard || activePage.extraTextBgCard ? 'bg-amber-50 border border-amber-300 text-amber-900' : 'text-blue-700'}`}>
+                          <p className="font-bold text-xs whitespace-pre-wrap" style={{ fontSize: `${extraTextSize || activePage.extraTextSize || 13}px` }}>
+                            {extraText || activePage.extraText}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {/* TOP SECTION: Elements placed at 'top' */}
                   <div className="space-y-1">
                     {(titlePosition === 'top' || !titlePosition) && (customTitle || activePage.title) && (
                       <div className={`transition-all text-center ${titleBgCard ? 'bg-white/90 backdrop-blur-xs p-2 rounded-xl border border-slate-200/80 shadow-xs' : ''}`}>
@@ -1171,6 +1241,8 @@ export default function SimpleWorkspaceView() {
                       </div>
                     </div>
                   )}
+                  </>
+                  )}
 
                 </div>
               </div>
@@ -1245,6 +1317,19 @@ export default function SimpleWorkspaceView() {
                 className="space-y-6"
               >
                 {activePage ? (
+                  activePage.layoutType === 'activity-worksheet' ? (
+                    <ActivityWorksheetEditor 
+                      config={activePage.activityWorksheet} 
+                      onChange={(updated) => updatePage(activePage.id, { activityWorksheet: updated })} 
+                      isAr={isAr} 
+                    />
+                  ) : activePage.layoutType === 'text-only' ? (
+                    <TextPageEditor 
+                      page={activePage} 
+                      onChange={(updates) => updatePage(activePage.id, updates)} 
+                      isAr={isAr} 
+                    />
+                  ) : (
                   <>
                     {/* Image Source Selection with Search lens */}
                     <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4">
@@ -2091,6 +2176,7 @@ export default function SimpleWorkspaceView() {
                       {isAr ? '💾 حفظ التعديلات وتحديث الصفحة' : '💾 Save Changes & Update Page'}
                     </button>
                   </>
+                  )
                 ) : (
                   <p className="text-xs text-slate-400 text-center py-12 border-2 border-dashed border-slate-100 rounded-2xl">
                     {isAr ? 'حدد صفحة من اليسار لتعديلها' : 'Select a page to configure properties.'}

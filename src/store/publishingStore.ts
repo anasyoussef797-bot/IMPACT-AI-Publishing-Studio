@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { Book, WorkflowStage, BookMetadata, Chapter, Page, Asset, QualityReport, BookType, BookLanguage } from '../types';
+import { createDefaultActivityWorksheet, createDefaultTextPageProps } from '../utils/defaultActivityTemplates';
 
 interface PublishingState {
   currentBook: Book | null;
@@ -49,6 +50,8 @@ interface PublishingState {
 
   // Composer Page Operations
   addBlankPage: () => void;
+  addTextPage: () => void;
+  addActivityPage: () => void;
   updatePage: (pageId: string, updates: Partial<Page>) => void;
   deletePage: (pageId: string) => void;
   addAssetToBook: (asset: Asset) => void;
@@ -586,9 +589,69 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
       const newPage: Page = {
         id: `page-${Date.now()}`,
         pageNumber: newPageNumber,
-        layoutType: newPageNumber === 1 ? 'title' : 'text-illustration',
-        title: `Page ${newPageNumber} Title`,
-        textContent: 'Double click to edit page content or ask the board to generate it...',
+        layoutType: newPageNumber === 1 ? 'title' : 'coloring',
+        title: `صفحة تلوين ${newPageNumber}`,
+        textContent: 'أدخل وصف رسمة التلوين أو اضغط على توليد بالذكاء الاصطناعي...',
+        isDoublePage: false,
+        bleedSafetyZone: true,
+        cropMarksEnabled: true,
+        reviewStatus: 'pending'
+      };
+
+      const updatedBook: Book = {
+        ...state.currentBook,
+        pages: [...state.currentBook.pages, newPage],
+        updatedAt: new Date().toISOString()
+      };
+
+      return {
+        currentBook: updatedBook,
+        booksList: state.booksList.map(b => b.id === updatedBook.id ? updatedBook : b)
+      };
+    });
+  },
+
+  addTextPage: () => {
+    set((state) => {
+      if (!state.currentBook) return {};
+      const newPageNumber = state.currentBook.pages.length + 1;
+      const defaultProps = createDefaultTextPageProps(newPageNumber);
+      const newPage: Page = {
+        id: `page-text-${Date.now()}`,
+        pageNumber: newPageNumber,
+        layoutType: 'text-only',
+        isDoublePage: false,
+        bleedSafetyZone: true,
+        cropMarksEnabled: true,
+        reviewStatus: 'pending',
+        ...defaultProps
+      };
+
+      const updatedBook: Book = {
+        ...state.currentBook,
+        pages: [...state.currentBook.pages, newPage],
+        updatedAt: new Date().toISOString()
+      };
+
+      return {
+        currentBook: updatedBook,
+        booksList: state.booksList.map(b => b.id === updatedBook.id ? updatedBook : b)
+      };
+    });
+  },
+
+  addActivityPage: () => {
+    set((state) => {
+      if (!state.currentBook) return {};
+      const newPageNumber = state.currentBook.pages.length + 1;
+      const worksheetConfig = createDefaultActivityWorksheet();
+      const newPage: Page = {
+        id: `page-activity-${Date.now()}`,
+        pageNumber: newPageNumber,
+        layoutType: 'activity-worksheet',
+        title: `ورقة أنشطة ورسومات ${newPageNumber}`,
+        textContent: 'ورقة أنشطة ومربعات تلوين ومطابقة رياض الأطفال',
+        activityWorksheet: worksheetConfig,
         isDoublePage: false,
         bleedSafetyZone: true,
         cropMarksEnabled: true,

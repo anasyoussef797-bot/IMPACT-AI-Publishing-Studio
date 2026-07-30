@@ -373,84 +373,129 @@ export default function BookDoneView() {
           </div>
 
           <!-- Content Body with decoupled text positions -->
-          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; padding: 10px 0;">
+          <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; text-align: right; padding: 10px 0;" dir="${isAr ? 'rtl' : 'ltr'}">
             
-            <!-- Top Text Section -->
-            <div>
-              ${p.title && (!p.titlePosition || p.titlePosition === 'top') ? `<h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0 0 4px 0; ${p.titleBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.title}</h2>` : ''}
-              ${p.textContent && (!p.textPosition || p.textPosition === 'top') ? `<p style="font-size: ${p.textSize || 14}px; color: ${p.textColor || '#475569'}; margin: 0 0 8px 0; ${p.textBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.textContent}</p>` : ''}
-              ${p.extraText && p.extraTextPosition === 'top' ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
-            </div>
-
-            <!-- Center Image (Outline or Full Color) with Overlay support -->
-            ${p.illustrationUrl ? `
-              <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 8px 0; position: relative;">
-                <img 
-                  src="${outlineImages[idx] || p.illustrationUrl}" 
-                  style="max-height: ${isFullColor ? '650px' : '520px'}; max-width: 680px; object-fit: contain; display: block;" 
-                  crossOrigin="anonymous" 
-                  alt="رسمة التلوين" 
-                />
-
-                <!-- Overlay Title -->
-                ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `
-                  <div style="position: absolute; ${
-                    p.titlePosition === 'top-right' ? 'top: 10px; right: 10px;' :
-                    p.titlePosition === 'top-left' ? 'top: 10px; left: 10px;' :
-                    p.titlePosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
-                    p.titlePosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
-                    'top: 50%; left: 50%; transform: translate(-50%, -50%);'
-                  } z-index: 10; ${p.titleBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
-                    <h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0;">${p.title}</h2>
+            ${p.layoutType === 'text-only' ? `
+              <div style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <h2 style="font-size: ${p.titleSize || 26}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0 0 16px 0; text-align: center;">
+                    ${p.title || (isAr ? 'عنوان الصفحة النصية' : 'Text Page Title')}
+                  </h2>
+                  <div style="padding: 20px; border-radius: 12px; font-size: ${p.textSize || 16}px; color: ${p.textColor || '#334155'}; line-height: 1.8; white-space: pre-wrap; ${p.textBgCard ? 'background: #f8fafc; border: 1px solid #e2e8f0;' : ''}">
+                    ${p.textContent || (isAr ? 'أدخل النص التعليمي هنا...' : 'Text content...')}
                   </div>
-                ` : ''}
-
-                <!-- Overlay Story Text -->
-                ${p.textContent && p.textPosition && p.textPosition !== 'top' && p.textPosition !== 'bottom' ? `
-                  <div style="position: absolute; ${
-                    p.textPosition === 'top-right' ? 'top: 10px; right: 10px;' :
-                    p.textPosition === 'top-left' ? 'top: 10px; left: 10px;' :
-                    p.textPosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
-                    p.textPosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
-                    'top: 50%; left: 50%; transform: translate(-50%, -50%);'
-                  } z-index: 10; ${p.textBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
-                    <p style="font-size: ${p.textSize || 14}px; font-weight: 600; color: ${p.textColor || '#475569'}; margin: 0;">${p.textContent}</p>
-                  </div>
-                ` : ''}
-
-                <!-- Overlay Extra Text -->
-                ${p.extraText && p.extraTextPosition && p.extraTextPosition !== 'top' && p.extraTextPosition !== 'bottom' ? `
-                  <div style="position: absolute; ${
-                    p.extraTextPosition === 'top-right' ? 'top: 10px; right: 10px;' :
-                    p.extraTextPosition === 'top-left' ? 'top: 10px; left: 10px;' :
-                    p.extraTextPosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
-                    p.extraTextPosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
-                    'top: 50%; left: 50%; transform: translate(-50%, -50%);'
-                  } z-index: 10; ${p.extraTextBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
-                    <p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p>
-                  </div>
-                ` : ''}
-              </div>
-            ` : ''}
-
-            <!-- Bottom Text Section -->
-            <div>
-              ${p.title && p.titlePosition === 'bottom' ? `<h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 4px 0; ${p.titleBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.title}</h2>` : ''}
-              ${p.textContent && p.textPosition === 'bottom' ? `<p style="font-size: ${p.textSize || 14}px; color: ${p.textColor || '#475569'}; margin: 4px 0; ${p.textBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.textContent}</p>` : ''}
-              ${p.extraText && (p.extraTextPosition === 'bottom' || !p.extraTextPosition) ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
-            </div>
-
-            <!-- Tracing Box directly below Outline Image -->
-            ${p.activity && p.activity.type === 'tracing' ? `
-              <div style="width: 92%; border: 2.5px dashed #0f172a; border-radius: 16px; padding: 10px 16px; background: #f8fafc; margin-top: 8px;">
-                <span style="font-size: 12px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 4px;">✍️ ${isAr ? 'تتبع خطوط الحرف ولونه:' : 'Trace lines & color:'}</span>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 32px; font-family: monospace;">
-                  <span style="font-size: 52px; font-weight: 900; color: #1e293b; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
-                  <span style="font-size: 52px; font-weight: 900; color: #94a3b8; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
-                  <span style="font-size: 52px; font-weight: 900; color: #cbd5e1; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
                 </div>
+                ${p.extraText ? `
+                  <div style="margin-top: 20px; padding: 16px; border-radius: 12px; font-size: ${p.extraTextSize || 13}px; font-weight: bold; white-space: pre-wrap; ${p.extraTextBgCard ? 'background: #fffbeb; border: 1px solid #fde68a; color: #78350f;' : 'color: #1d4ed8;'}">
+                    ${p.extraText}
+                  </div>
+                ` : ''}
               </div>
-            ` : ''}
+            ` : p.layoutType === 'activity-worksheet' ? `
+              <div style="height: 100%; display: flex; flex-direction: column; gap: 16px;">
+                ${p.activityWorksheet ? `
+                  <div style="border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 8px; text-align: center;">
+                    <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0;">${p.activityWorksheet.headerTitleAr || p.activityWorksheet.headerTitleEn || (isAr ? 'ورقة نشاط' : 'Activity Sheet')}</h2>
+                    ${p.activityWorksheet.headerSubtitle ? `<p style="font-size: 13px; color: #475569; margin: 4px 0 0 0;">${p.activityWorksheet.headerSubtitle}</p>` : ''}
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; flex: 1;">
+                    ${(p.activityWorksheet.blocks || []).map(b => `
+                      <div style="border: 2px ${b.borderStyle === 'dashed' ? 'dashed' : 'solid'} ${b.borderColor || '#cbd5e1'}; background: ${b.bgColor || '#ffffff'}; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; text-align: center; min-height: 120px;">
+                        ${b.title ? `<div style="font-size: 14px; font-weight: bold; color: #0f172a; margin-bottom: 6px;">${b.title}</div>` : ''}
+                        ${b.contentType === 'image' && b.imageUrl ? `
+                          <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <img src="${b.imageUrl}" style="max-height: 140px; max-width: 100%; object-fit: contain;" crossOrigin="anonymous" />
+                          </div>
+                        ` : ''}
+                        ${(b.textContent || b.textAr || b.instructionAr) ? `<p style="font-size: 14px; color: #334155; margin: 4px 0;">${b.textContent || b.textAr || b.instructionAr}</p>` : ''}
+                        ${b.contentType === 'tracing' && b.tracingText ? `
+                          <div style="font-family: monospace; font-size: 32px; font-weight: 900; color: #cbd5e1; text-decoration: line-through; letter-spacing: 4px; margin: 8px 0;">
+                            ${b.tracingText}
+                          </div>
+                        ` : ''}
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            ` : `
+              <!-- Top Text Section -->
+              <div>
+                ${p.title && (!p.titlePosition || p.titlePosition === 'top') ? `<h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0 0 4px 0; ${p.titleBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.title}</h2>` : ''}
+                ${p.textContent && (!p.textPosition || p.textPosition === 'top') ? `<p style="font-size: ${p.textSize || 14}px; color: ${p.textColor || '#475569'}; margin: 0 0 8px 0; ${p.textBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.textContent}</p>` : ''}
+                ${p.extraText && p.extraTextPosition === 'top' ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
+              </div>
+
+              <!-- Center Image (Outline or Full Color) with Overlay support -->
+              ${p.illustrationUrl ? `
+                <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 8px 0; position: relative;">
+                  <img 
+                    src="${outlineImages[idx] || p.illustrationUrl}" 
+                    style="max-height: ${isFullColor ? '650px' : '520px'}; max-width: 680px; object-fit: contain; display: block;" 
+                    crossOrigin="anonymous" 
+                    alt="رسمة التلوين" 
+                  />
+
+                  <!-- Overlay Title -->
+                  ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `
+                    <div style="position: absolute; ${
+                      p.titlePosition === 'top-right' ? 'top: 10px; right: 10px;' :
+                      p.titlePosition === 'top-left' ? 'top: 10px; left: 10px;' :
+                      p.titlePosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
+                      p.titlePosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
+                      'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                    } z-index: 10; ${p.titleBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
+                      <h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0;">${p.title}</h2>
+                    </div>
+                  ` : ''}
+
+                  <!-- Overlay Story Text -->
+                  ${p.textContent && p.textPosition && p.textPosition !== 'top' && p.textPosition !== 'bottom' ? `
+                    <div style="position: absolute; ${
+                      p.textPosition === 'top-right' ? 'top: 10px; right: 10px;' :
+                      p.textPosition === 'top-left' ? 'top: 10px; left: 10px;' :
+                      p.textPosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
+                      p.textPosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
+                      'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                    } z-index: 10; ${p.textBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
+                      <p style="font-size: ${p.textSize || 14}px; font-weight: 600; color: ${p.textColor || '#475569'}; margin: 0;">${p.textContent}</p>
+                    </div>
+                  ` : ''}
+
+                  <!-- Overlay Extra Text -->
+                  ${p.extraText && p.extraTextPosition && p.extraTextPosition !== 'top' && p.extraTextPosition !== 'bottom' ? `
+                    <div style="position: absolute; ${
+                      p.extraTextPosition === 'top-right' ? 'top: 10px; right: 10px;' :
+                      p.extraTextPosition === 'top-left' ? 'top: 10px; left: 10px;' :
+                      p.extraTextPosition === 'bottom-right' ? 'bottom: 10px; right: 10px;' :
+                      p.extraTextPosition === 'bottom-left' ? 'bottom: 10px; left: 10px;' :
+                      'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                    } z-index: 10; ${p.extraTextBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
+                      <p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p>
+                    </div>
+                  ` : ''}
+                </div>
+              ` : ''}
+
+              <!-- Bottom Text Section -->
+              <div>
+                ${p.title && p.titlePosition === 'bottom' ? `<h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 4px 0; ${p.titleBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.title}</h2>` : ''}
+                ${p.textContent && p.textPosition === 'bottom' ? `<p style="font-size: ${p.textSize || 14}px; color: ${p.textColor || '#475569'}; margin: 4px 0; ${p.textBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}">${p.textContent}</p>` : ''}
+                ${p.extraText && (p.extraTextPosition === 'bottom' || !p.extraTextPosition) ? `<div style="margin-top: 4px; ${p.extraTextBgCard ? 'background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block;' : ''}"><p style="font-size: ${p.extraTextSize || 14}px; font-weight: bold; color: ${p.extraTextColor || '#2563eb'}; margin: 0;">${p.extraText}</p></div>` : ''}
+              </div>
+
+              <!-- Tracing Box directly below Outline Image -->
+              ${p.activity && p.activity.type === 'tracing' ? `
+                <div style="width: 92%; border: 2.5px dashed #0f172a; border-radius: 16px; padding: 10px 16px; background: #f8fafc; margin-top: 8px;">
+                  <span style="font-size: 12px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 4px;">✍️ ${isAr ? 'تتبع خطوط الحرف ولونه:' : 'Trace lines & color:'}</span>
+                  <div style="display: flex; justify-content: center; align-items: center; gap: 32px; font-family: monospace;">
+                    <span style="font-size: 52px; font-weight: 900; color: #1e293b; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+                    <span style="font-size: 52px; font-weight: 900; color: #94a3b8; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+                    <span style="font-size: 52px; font-weight: 900; color: #cbd5e1; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+                  </div>
+                </div>
+              ` : ''}
+            `}
           </div>
 
           <!-- Footer Area -->

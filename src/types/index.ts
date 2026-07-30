@@ -67,10 +67,43 @@ export type LayoutType =
   | 'title'
   | 'full-illustration'
   | 'text-illustration'
+  | 'text-only'
   | 'activity'
+  | 'activity-worksheet'
   | 'tracing'
   | 'coloring'
   | 'vocabulary-grid';
+
+export interface ActivityBlock {
+  id: string;
+  title: string; // e.g. "Activity 1 - LOOK" or "النشاط 1 - انظر"
+  icon?: string; // 'pencil' | 'crayon' | 'search' | 'link' | 'chat' | 'star' | 'count' | 'trace'
+  borderColor?: string; // 'blue' | 'yellow' | 'green' | 'purple' | 'orange' | 'teal' | 'pink' | 'slate'
+  bgColor?: string; // light background color hex e.g. '#f0f9ff'
+  borderStyle?: 'solid' | 'dashed' | 'thick';
+  widthSpan?: 'full' | 'half' | 'third' | 'twothirds'; // 100%, 50%, 33.3%, 66.6%
+  minHeight?: number; // e.g., 180 (px)
+  instructionAr?: string; // e.g., "انظر إلى الصورة."
+  instructionEn?: string; // e.g., "Look at the picture."
+  contentType?: 'image' | 'text' | 'tracing' | 'matching' | 'hybrid';
+  imageUrl?: string;
+  imagePrompt?: string;
+  textContent?: string;
+  textAr?: string;
+  textEn?: string;
+  tracingText?: string;
+  matchingPairs?: { left: string; right: string; leftIcon?: string; rightIcon?: string }[];
+}
+
+export interface ActivityWorksheetConfig {
+  headerTitleAr?: string;
+  headerTitleEn?: string;
+  headerSubtitle?: string;
+  headerThemeColor?: string;
+  footerTextAr?: string;
+  footerTextEn?: string;
+  blocks: ActivityBlock[];
+}
 
 export interface PageActivity {
   id: string;
@@ -92,6 +125,9 @@ export interface Page {
   illustrationAssetId?: string;
   illustrationUrl?: string;
   activity?: PageActivity;
+  activityWorksheet?: ActivityWorksheetConfig;
+  textPageTheme?: 'clean' | 'warm-cream' | 'pastel-blue' | 'framed' | 'storybook';
+  secondaryTextContent?: string;
   isDoublePage: boolean;
   bleedSafetyZone: boolean;
   cropMarksEnabled: boolean;

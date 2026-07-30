@@ -9,12 +9,17 @@ import { useTranslation } from '../localization';
 import { BookOpen, Plus, Trash2, ArrowRight, Sparkles, Wand2, Type as FontIcon, PenTool, Layout, Image, Layers, HelpCircle, ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Page, LayoutType } from '../types';
+import { ActivityWorksheetView } from './ActivityWorksheetView';
+import { ActivityWorksheetEditor } from './ActivityWorksheetEditor';
+import { TextPageEditor } from './TextPageEditor';
 
 export default function BookComposerView() {
   const { t } = useTranslation();
   const { 
     currentBook, 
-    addBlankPage, 
+    addBlankPage,
+    addTextPage,
+    addActivityPage, 
     updatePage, 
     deletePage, 
     generatePageAsset, 
@@ -338,12 +343,62 @@ export default function BookComposerView() {
             <h3 className="text-xs uppercase font-mono font-bold text-slate-400 tracking-wider">
               {t('trim_pages')}
             </h3>
+          </div>
+
+          {/* Quick Page Add Action Buttons */}
+          <div className="space-y-1.5 bg-slate-100 p-1.5 rounded-lg border border-slate-200">
             <button
-              onClick={handleAddPage}
-              className="p-1 hover:bg-brand-50 text-brand-600 hover:text-brand-700 rounded transition"
-              title={t('tooltip_add_page_btn')}
+              onClick={() => {
+                addBlankPage();
+                setTimeout(() => {
+                  if (currentBook.pages.length > 0) {
+                    setSelectedPageId(currentBook.pages[currentBook.pages.length - 1].id);
+                  }
+                }, 100);
+              }}
+              className="w-full py-1.5 px-2 bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded text-brand-700 font-bold text-[10px] flex items-center justify-between transition"
             >
-              <Plus className="w-4 h-4" />
+              <span className="flex items-center gap-1">
+                <Plus className="w-3 h-3 text-brand-600" />
+                <span>صفحة تلوين</span>
+              </span>
+              <span className="text-[9px] text-slate-400">🎨</span>
+            </button>
+
+            <button
+              onClick={() => {
+                addTextPage();
+                setTimeout(() => {
+                  if (currentBook.pages.length > 0) {
+                    setSelectedPageId(currentBook.pages[currentBook.pages.length - 1].id);
+                  }
+                }, 100);
+              }}
+              className="w-full py-1.5 px-2 bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded text-sky-700 font-bold text-[10px] flex items-center justify-between transition"
+            >
+              <span className="flex items-center gap-1">
+                <FontIcon className="w-3 h-3 text-sky-600" />
+                <span>صفحة نصية</span>
+              </span>
+              <span className="text-[9px] text-slate-400">📝</span>
+            </button>
+
+            <button
+              onClick={() => {
+                addActivityPage();
+                setTimeout(() => {
+                  if (currentBook.pages.length > 0) {
+                    setSelectedPageId(currentBook.pages[currentBook.pages.length - 1].id);
+                  }
+                }, 100);
+              }}
+              className="w-full py-1.5 px-2 bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded text-purple-700 font-bold text-[10px] flex items-center justify-between transition"
+            >
+              <span className="flex items-center gap-1">
+                <Layers className="w-3 h-3 text-purple-600" />
+                <span>صفحة أنشطة</span>
+              </span>
+              <span className="text-[9px] text-slate-400">🧩</span>
             </button>
           </div>
 
@@ -419,6 +474,41 @@ export default function BookComposerView() {
                 {/* Simulated page layouts depending on selection */}
                 <div className="p-8 h-full flex flex-col justify-between select-none">
                   
+                  {/* ACTIVITY WORKSHEET LAYOUT */}
+                  {activePage.layoutType === 'activity-worksheet' && (
+                    <div className="h-full overflow-y-auto">
+                      <ActivityWorksheetView config={activePage.activityWorksheet} isAr={true} />
+                    </div>
+                  )}
+
+                  {/* TEXT-ONLY PAGE LAYOUT */}
+                  {activePage.layoutType === 'text-only' && (
+                    <div className="h-full flex flex-col justify-between p-4 bg-white text-right" dir="rtl">
+                      <div>
+                        <h2 
+                          className="font-display font-extrabold tracking-tight leading-snug mb-3 text-center"
+                          style={{ fontSize: `${activePage.titleSize || 22}px`, color: activePage.titleColor || '#0f172a' }}
+                        >
+                          {activePage.title || 'عنوان الصفحة النصية'}
+                        </h2>
+                        
+                        <div className={`p-3 rounded-lg leading-relaxed whitespace-pre-wrap ${activePage.textBgCard ? 'bg-slate-50 border border-slate-200' : ''}`}>
+                          <p style={{ fontSize: `${activePage.textSize || 14}px`, color: activePage.textColor || '#334155' }}>
+                            {activePage.textContent || 'أدخل النص التعليمي أو القصة هنا...'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {activePage.extraText && (
+                        <div className={`mt-3 p-2.5 rounded-lg ${activePage.extraTextBgCard ? 'bg-amber-50 border border-amber-300 text-amber-900' : 'text-blue-700'}`}>
+                          <p className="font-bold text-xs whitespace-pre-wrap" style={{ fontSize: `${activePage.extraTextSize || 13}px` }}>
+                            {activePage.extraText}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* TITLE PAGE LAYOUT */}
                   {activePage.layoutType === 'title' && (
                     <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
@@ -613,6 +703,19 @@ export default function BookComposerView() {
           </h3>
 
           {activePage ? (
+            activePage.layoutType === 'activity-worksheet' ? (
+              <ActivityWorksheetEditor 
+                config={activePage.activityWorksheet} 
+                onChange={(updated) => updatePage(activePage.id, { activityWorksheet: updated })} 
+                isAr={true} 
+              />
+            ) : activePage.layoutType === 'text-only' ? (
+              <TextPageEditor 
+                page={activePage} 
+                onChange={(updates) => updatePage(activePage.id, updates)} 
+                isAr={true} 
+              />
+            ) : (
             <div className="space-y-6">
               
               {/* Layout Properties */}
@@ -879,6 +982,7 @@ export default function BookComposerView() {
               )}
 
             </div>
+            )
           ) : (
             <p className="text-xs text-slate-400">{t('initialize_pages_control_placeholder')}</p>
           )}
