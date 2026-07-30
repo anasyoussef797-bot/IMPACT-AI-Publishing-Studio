@@ -124,6 +124,8 @@ export interface PageImageItem {
   offsetY?: number;
   widthCm?: number;
   heightCm?: number;
+  opacity?: number; // Opacity 10% to 100% (e.g. 20 for watermark)
+  isWatermark?: boolean; // Whether placed as background watermark behind text
 }
 
 export interface Page {
@@ -152,6 +154,7 @@ export interface Page {
   imageScaleY?: number; // e.g., 20 to 300 (%) for freeform vertical stretch
   imageOffsetY?: number; // vertical offset in % or px
   imageOffsetX?: number; // horizontal offset in % or px
+  imageOpacity?: number; // e.g. 10 to 100 (%) for watermark / transparency
   topMargin?: '0cm' | '1.5cm' | '3cm' | '5cm' | number; // page top margin control
   textSize?: number; // font size in px e.g. 8 to 36
   textColor?: string; // hex string e.g. '#0f172a'

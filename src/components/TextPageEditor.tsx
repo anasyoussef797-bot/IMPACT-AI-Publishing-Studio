@@ -501,6 +501,53 @@ export const TextPageEditor: React.FC<Props> = ({ page, onChange, isAr = true })
                       />
                     </div>
                   </div>
+
+                  {/* Opacity / Watermark Control */}
+                  <div className="space-y-1.5 pt-2 border-t border-purple-200/60">
+                    <div className="flex justify-between items-center text-[10px] font-bold text-purple-900">
+                      <span>{isAr ? 'شفافية الصورة / العلامة المائية (Opacity):' : 'Image Transparency / Watermark:'}</span>
+                      <span className="font-mono text-[10px] bg-purple-100 px-1.5 py-0.5 rounded text-purple-800 font-extrabold">
+                        {img.opacity ?? 100}%
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="range"
+                        min="10"
+                        max="100"
+                        step="5"
+                        value={img.opacity ?? 100}
+                        onChange={(e) => handleUpdateImage(img.id, { opacity: Number(e.target.value) })}
+                        className="w-full accent-purple-600 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateImage(img.id, { opacity: 20, isWatermark: true })}
+                        className={`flex-1 py-1 text-[10px] font-bold rounded-lg border transition ${
+                          (img.opacity ?? 100) <= 30
+                            ? 'bg-purple-600 text-white border-purple-600'
+                            : 'bg-white text-purple-900 border-purple-200 hover:bg-purple-100'
+                        }`}
+                      >
+                        {isAr ? '💧 علامة مائية (20%)' : '💧 Watermark (20%)'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateImage(img.id, { opacity: 100, isWatermark: false })}
+                        className={`flex-1 py-1 text-[10px] font-bold rounded-lg border transition ${
+                          (img.opacity ?? 100) > 80
+                            ? 'bg-purple-600 text-white border-purple-600'
+                            : 'bg-white text-purple-900 border-purple-200 hover:bg-purple-100'
+                        }`}
+                      >
+                        {isAr ? '✨ وضوح كامل (100%)' : '✨ Full Opacity (100%)'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               );
             })}

@@ -58,6 +58,7 @@ export default function SimpleWorkspaceView() {
   const [imageScaleY, setImageScaleY] = useState(100);
   const [imageOffsetY, setImageOffsetY] = useState(0);
   const [imageOffsetX, setImageOffsetX] = useState(0);
+  const [imageOpacity, setImageOpacity] = useState(100);
   
   // Interactive Mouse Dragging & Freeform Stretch/Compress States on Canvas
   const [isDraggingImage, setIsDraggingImage] = useState(false);
@@ -211,6 +212,7 @@ export default function SimpleWorkspaceView() {
       setImageScaleY(activePage.imageScaleY || 100);
       setImageOffsetY(activePage.imageOffsetY || 0);
       setImageOffsetX(activePage.imageOffsetX || 0);
+      setImageOpacity(activePage.imageOpacity || 100);
       setTopMargin((activePage.topMargin as any) || '3cm');
       
       setTitleSize(activePage.titleSize || 22);
@@ -334,13 +336,21 @@ export default function SimpleWorkspaceView() {
 
   const handleImageMouseDown = (e: React.MouseEvent, imgId?: string) => {
     e.preventDefault();
-    if (imgId) {
+    let startX = imageOffsetX;
+    let startY = imageOffsetY;
+    if (imgId && activePage) {
       setSelectedImageId(imgId);
       setActiveDragImgId(imgId);
+      const currentImages = getPageImages(activePage);
+      const targetImg = currentImages.find(img => img.id === imgId);
+      if (targetImg) {
+        startX = targetImg.offsetX || 0;
+        startY = targetImg.offsetY || 0;
+      }
     }
     setIsDraggingImage(true);
     setDragStartPos({ x: e.clientX, y: e.clientY });
-    setDragStartOffset({ x: imageOffsetX, y: imageOffsetY });
+    setDragStartOffset({ x: startX, y: startY });
   };
 
   const handleResizeStart = (e: React.MouseEvent, dir: 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se' | 'both' = 'both', imgId?: string) => {
@@ -1118,6 +1128,7 @@ export default function SimpleWorkspaceView() {
                             const imgScaleY = imgItem.scaleY || 100;
                             const imgOffsetX = imgItem.offsetX || 0;
                             const imgOffsetY = imgItem.offsetY || 0;
+                            const imgOp = (imgItem.opacity ?? activePage.imageOpacity ?? 100) / 100;
                             const widthCm = imgItem.widthCm || Math.round((14.0 * (imgScale / 100) * (imgScaleX / 100)) * 10) / 10;
                             const heightCm = imgItem.heightCm || Math.round((12.0 * (imgScale / 100) * (imgScaleY / 100)) * 10) / 10;
 
@@ -1127,8 +1138,10 @@ export default function SimpleWorkspaceView() {
                                 className={`relative flex items-center justify-center transition-shadow m-2 ${isSelected ? 'ring-2 ring-purple-500/80 ring-offset-2 rounded-lg' : 'hover:ring-1 hover:ring-purple-300 rounded-lg'}`}
                                 style={{
                                   transform: `scale(${imgScale / 100}) scale(${imgScaleX / 100}, ${imgScaleY / 100}) translate(${imgOffsetX}px, ${imgOffsetY}px)`,
+                                  opacity: imgOp,
                                   cursor: isDraggingImage && activeDragImgId === imgItem.id ? 'grabbing' : 'grab',
-                                  touchAction: 'none'
+                                  touchAction: 'none',
+                                  zIndex: imgItem.isWatermark ? 0 : 20
                                 }}
                                 onMouseDown={(e) => handleImageMouseDown(e, imgItem.id)}
                               >
@@ -1261,6 +1274,7 @@ export default function SimpleWorkspaceView() {
                           const imgScaleY = imgItem.scaleY || 100;
                           const imgOffsetX = imgItem.offsetX || 0;
                           const imgOffsetY = imgItem.offsetY || 0;
+                          const imgOp = (imgItem.opacity ?? activePage.imageOpacity ?? 100) / 100;
 
                           return (
                             <div 
@@ -1268,6 +1282,7 @@ export default function SimpleWorkspaceView() {
                               className={`relative max-w-full max-h-full flex items-center justify-center transition-shadow m-2 ${isSelected ? 'ring-2 ring-purple-500/80 ring-offset-2 rounded-lg' : 'hover:ring-1 hover:ring-purple-300 rounded-lg'}`}
                               style={{
                                 transform: `scale(${imgScale / 100}) scale(${imgScaleX / 100}, ${imgScaleY / 100}) translate(${imgOffsetX}px, ${imgOffsetY}px)`,
+                                opacity: imgOp,
                                 cursor: isDraggingImage && activeDragImgId === imgItem.id ? 'grabbing' : 'grab',
                                 touchAction: 'none'
                               }}
@@ -1972,6 +1987,77 @@ export default function SimpleWorkspaceView() {
                             }}
                             className="w-full accent-purple-600 cursor-pointer"
                           />
+                        </div>
+
+                        {/* Image Opacity & Watermark Control */}
+                        <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                            <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs font-extrabold">{imageOpacity}%</span>
+                            <span className="flex items-center gap-1">
+                              <Sliders className="w-3.5 h-3.5 text-purple-600" />
+                              {isAr ? 'شفافية الصورة / العلامة المائية (Opacity):' : 'Image Transparency / Watermark:'}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="10"
+                            max="100"
+                            step="5"
+                            value={imageOpacity}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setImageOpacity(val);
+                              if (activePage) {
+                                const currentImages = getPageImages(activePage);
+                                const updated = currentImages.map(img => 
+                                  selectedImageId && img.id === selectedImageId 
+                                    ? { ...img, opacity: val }
+                                    : { ...img, opacity: val }
+                                );
+                                updatePage(activePage.id, { pageImages: updated, imageOpacity: val });
+                              }
+                            }}
+                            className="w-full accent-purple-600 cursor-pointer"
+                          />
+                          <div className="grid grid-cols-2 gap-1.5 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setImageOpacity(20);
+                                if (activePage) {
+                                  const currentImages = getPageImages(activePage);
+                                  const updated = currentImages.map(img => ({ ...img, opacity: 20, isWatermark: true }));
+                                  updatePage(activePage.id, { pageImages: updated, imageOpacity: 20 });
+                                }
+                              }}
+                              className={`py-1 px-2 text-[10px] font-bold rounded-lg border transition ${
+                                imageOpacity <= 30
+                                  ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              {isAr ? '💧 علامة مائية (20%)' : '💧 Watermark (20%)'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setImageOpacity(100);
+                                if (activePage) {
+                                  const currentImages = getPageImages(activePage);
+                                  const updated = currentImages.map(img => ({ ...img, opacity: 100, isWatermark: false }));
+                                  updatePage(activePage.id, { pageImages: updated, imageOpacity: 100 });
+                                }
+                              }}
+                              className={`py-1 px-2 text-[10px] font-bold rounded-lg border transition ${
+                                imageOpacity > 80
+                                  ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              {isAr ? '✨ وضوح كامل (100%)' : '✨ Full (100%)'}
+                            </button>
+                          </div>
                         </div>
 
                         {/* Reset Button */}
