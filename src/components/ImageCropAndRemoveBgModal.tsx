@@ -113,40 +113,50 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
   };
 
   // Perform Crop on Canvas
-  const handleApplyCrop = () => {
-    const img = new Image();
-    if (workingImage.startsWith('http')) {
-      img.crossOrigin = 'anonymous';
-    }
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const sourceX = Math.max(0, Math.floor((cropBox.left / 100) * img.naturalWidth));
-        const sourceY = Math.max(0, Math.floor((cropBox.top / 100) * img.naturalHeight));
-        const sourceW = Math.min(img.naturalWidth - sourceX, Math.floor((cropBox.width / 100) * img.naturalWidth));
-        const sourceH = Math.min(img.naturalHeight - sourceY, Math.floor((cropBox.height / 100) * img.naturalHeight));
-
-        canvas.width = Math.max(1, sourceW);
-        canvas.height = Math.max(1, sourceH);
-
-        ctx.drawImage(
-          img,
-          sourceX, sourceY, sourceW, sourceH,
-          0, 0, canvas.width, canvas.height
-        );
-
-        const croppedUrl = canvas.toDataURL('image/png');
-        setWorkingImage(croppedUrl);
-        setCropBox({ top: 2, left: 2, width: 96, height: 96 });
-      } catch (err) {
-        console.error('Crop failed:', err);
+  const processCrop = (imageSrc: string, box: typeof cropBox): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      if (imageSrc.startsWith('http')) {
+        img.crossOrigin = 'anonymous';
       }
-    };
-    img.onerror = (e) => console.error('Image load failed for crop', e);
-    img.src = workingImage;
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { resolve(imageSrc); return; }
+
+          const sourceX = Math.max(0, Math.floor((box.left / 100) * img.naturalWidth));
+          const sourceY = Math.max(0, Math.floor((box.top / 100) * img.naturalHeight));
+          const sourceW = Math.max(1, Math.min(img.naturalWidth - sourceX, Math.floor((box.width / 100) * img.naturalWidth)));
+          const sourceH = Math.max(1, Math.min(img.naturalHeight - sourceY, Math.floor((box.height / 100) * img.naturalHeight)));
+
+          canvas.width = sourceW;
+          canvas.height = sourceH;
+
+          ctx.drawImage(
+            img,
+            sourceX, sourceY, sourceW, sourceH,
+            0, 0, canvas.width, canvas.height
+          );
+
+          resolve(canvas.toDataURL('image/png'));
+        } catch (err) {
+          console.error('Crop failed:', err);
+          resolve(imageSrc);
+        }
+      };
+      img.onerror = (e) => {
+        console.error('Image load error for crop', e);
+        resolve(imageSrc);
+      };
+      img.src = imageSrc;
+    });
+  };
+
+  const handleApplyCrop = async () => {
+    const croppedUrl = await processCrop(workingImage, cropBox);
+    setWorkingImage(croppedUrl);
+    setCropBox({ top: 2, left: 2, width: 96, height: 96 });
   };
 
   // Perform Background Removal (White / Light Colors to Transparent PNG)
@@ -176,15 +186,13 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
           const w = canvas.width;
           const h = canvas.height;
 
-          // Threshold tolerance calculation (0-255)
-          const threshold = 255 - (bgTolerance * 2.55);
-
+          // Luminance / brightness check function
           const isWhitePixel = (r: number, g: number, b: number, a: number) => {
             if (a === 0) return true;
-            const minVal = Math.min(r, g, b);
+            const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
             const maxDiff = Math.max(r, g, b) - Math.min(r, g, b);
-            // High brightness and low color variance = white/light background
-            return minVal >= threshold && maxDiff < (bgTolerance * 1.5 + 25);
+            const minBrightness = 255 - (bgTolerance * 2.8);
+            return brightness >= minBrightness && maxDiff < (bgTolerance * 1.5 + 25);
           };
 
           if (removeMode === 'all_white') {
@@ -199,7 +207,7 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
               }
             }
           } else {
-            // Flood Fill Outer Edge Background removal (preserves inner white details)
+            // Flood Fill Outer Edge Background removal
             const visited = new Uint8Array(w * h);
             const queue: number[] = [];
 
@@ -208,12 +216,12 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
               return isWhitePixel(data[px], data[px + 1], data[px + 2], data[px + 3]);
             };
 
-            // Seed outer border pixels
-            for (let x = 0; x < w; x++) {
+            // Seed outer border pixels with multiple points
+            for (let x = 0; x < w; x += 2) {
               queue.push(x); // top edge
               queue.push((h - 1) * w + x); // bottom edge
             }
-            for (let y = 0; y < h; y++) {
+            for (let y = 0; y < h; y += 2) {
               queue.push(y * w); // left edge
               queue.push(y * w + (w - 1)); // right edge
             }
@@ -297,8 +305,13 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
   };
 
   // Save & Apply back to app
-  const handleFinalSave = () => {
-    onApply(workingImage);
+  const handleFinalSave = async () => {
+    let resultImage = workingImage;
+    // If the crop box is active and was framed by the user (not standard full image frame)
+    if (activeTab === 'crop' && (cropBox.width < 96 || cropBox.height < 96 || cropBox.top > 3 || cropBox.left > 3)) {
+      resultImage = await processCrop(workingImage, cropBox);
+    }
+    onApply(resultImage);
     onClose();
   };
 

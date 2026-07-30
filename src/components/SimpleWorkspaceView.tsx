@@ -264,34 +264,34 @@ export default function SimpleWorkspaceView() {
         let newScale = resizeStartScale;
 
         if (stretchDirection === 'e') {
-          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX + dx));
+          newScaleX = Math.max(10, Math.min(500, resizeStartScaleX + dx));
+          newScaleY = resizeStartScaleY;
         } else if (stretchDirection === 'w') {
-          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX - dx));
+          newScaleX = Math.max(10, Math.min(500, resizeStartScaleX - dx));
+          newScaleY = resizeStartScaleY;
         } else if (stretchDirection === 's') {
-          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY + dy));
+          newScaleY = Math.max(10, Math.min(500, resizeStartScaleY + dy));
+          newScaleX = resizeStartScaleX;
         } else if (stretchDirection === 'n') {
-          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY - dy));
+          newScaleY = Math.max(10, Math.min(500, resizeStartScaleY - dy));
+          newScaleX = resizeStartScaleX;
         } else if (stretchDirection === 'se') {
-          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX + dx));
-          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY + dy));
-          newScale = Math.max(10, Math.min(300, resizeStartScale + Math.round((dx + dy) / 2)));
+          newScaleX = Math.max(10, Math.min(500, resizeStartScaleX + dx));
+          newScaleY = Math.max(10, Math.min(500, resizeStartScaleY + dy));
         } else if (stretchDirection === 'sw') {
-          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX - dx));
-          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY + dy));
-          newScale = Math.max(10, Math.min(300, resizeStartScale + Math.round((-dx + dy) / 2)));
+          newScaleX = Math.max(10, Math.min(500, resizeStartScaleX - dx));
+          newScaleY = Math.max(10, Math.min(500, resizeStartScaleY + dy));
         } else if (stretchDirection === 'ne') {
-          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX + dx));
-          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY - dy));
-          newScale = Math.max(10, Math.min(300, resizeStartScale + Math.round((dx - dy) / 2)));
+          newScaleX = Math.max(10, Math.min(500, resizeStartScaleX + dx));
+          newScaleY = Math.max(10, Math.min(500, resizeStartScaleY - dy));
         } else if (stretchDirection === 'nw') {
-          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX - dx));
-          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY - dy));
-          newScale = Math.max(10, Math.min(300, resizeStartScale + Math.round((-dx - dy) / 2)));
+          newScaleX = Math.max(10, Math.min(500, resizeStartScaleX - dx));
+          newScaleY = Math.max(10, Math.min(500, resizeStartScaleY - dy));
         } else {
           const distChange = Math.round((dx + dy) / 2);
-          newScale = Math.max(10, Math.min(300, resizeStartScale + distChange));
-          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX + dx));
-          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY + dy));
+          newScale = Math.max(10, Math.min(500, resizeStartScale + distChange));
+          newScaleX = Math.max(10, Math.min(500, resizeStartScaleX + dx));
+          newScaleY = Math.max(10, Math.min(500, resizeStartScaleY + dy));
         }
 
         const currentImages = getPageImages(activePage);
@@ -664,7 +664,8 @@ export default function SimpleWorkspaceView() {
     reader.onload = (event) => {
       const b64Url = event.target?.result as string;
       if (activePage && b64Url) {
-        // Open crop & bg removal pre-processing modal BEFORE placing image on page!
+        // Clear editingImageId so this upload is treated as a brand NEW image
+        setEditingImageId(null);
         setCropImageSrc(b64Url);
         setIsCropModalOpen(true);
       }
