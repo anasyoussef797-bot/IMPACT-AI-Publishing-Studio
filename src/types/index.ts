@@ -137,6 +137,7 @@ export interface Page {
   imageScale?: number; // e.g., 50 to 150 (%)
   imageOffsetY?: number; // vertical offset in % or px
   imageOffsetX?: number; // horizontal offset in % or px
+  topMargin?: '0cm' | '1.5cm' | '3cm' | '5cm' | number; // page top margin control
   textSize?: number; // font size in px e.g. 14, 18, 24, 32
   textColor?: string; // hex string e.g. '#0f172a'
   titleSize?: number; // font size for title in px e.g. 18, 22, 28, 36

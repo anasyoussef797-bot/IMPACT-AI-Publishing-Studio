@@ -56,6 +56,18 @@ export default function SimpleWorkspaceView() {
   const [imageOffsetY, setImageOffsetY] = useState(0);
   const [imageOffsetX, setImageOffsetX] = useState(0);
   
+  // Interactive Mouse Dragging & Resizing States on Canvas
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+  const [dragStartOffset, setDragStartOffset] = useState({ x: 0, y: 0 });
+  const [isResizingImage, setIsResizingImage] = useState(false);
+  const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
+  const [resizeStartScale, setResizeStartScale] = useState(100);
+  const [isImageHovered, setIsImageHovered] = useState(false);
+
+  // Top Page Margin Control (0cm, 1.5cm, 3cm, 5cm)
+  const [topMargin, setTopMargin] = useState<'0cm' | '1.5cm' | '3cm' | '5cm'>('3cm');
+  
   // Title Typography Controls
   const [titleSize, setTitleSize] = useState(22);
   const [titleColor, setTitleColor] = useState('#0f172a');
@@ -265,6 +277,7 @@ export default function SimpleWorkspaceView() {
       setImageScale(activePage.imageScale || 100);
       setImageOffsetY(activePage.imageOffsetY || 0);
       setImageOffsetX(activePage.imageOffsetX || 0);
+      setTopMargin((activePage.topMargin as any) || '3cm');
       
       setTitleSize(activePage.titleSize || 22);
       setTitleColor(activePage.titleColor || '#0f172a');
@@ -289,6 +302,77 @@ export default function SimpleWorkspaceView() {
       }
     }
   }, [selectedPageId, activePage]);
+
+  // Window mouse listener for interactive canvas image dragging & corner resizing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDraggingImage) {
+        const dx = e.clientX - dragStartPos.x;
+        const dy = e.clientY - dragStartPos.y;
+        const newX = dragStartOffset.x + dx;
+        const newY = dragStartOffset.y + dy;
+        setImageOffsetX(newX);
+        setImageOffsetY(newY);
+      } else if (isResizingImage) {
+        const dx = e.clientX - resizeStartPos.x;
+        const dy = e.clientY - resizeStartPos.y;
+        const distChange = Math.round((dx + dy) / 2);
+        const newScale = Math.max(20, Math.min(300, resizeStartScale + distChange));
+        setImageScale(newScale);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingImage) {
+        setIsDraggingImage(false);
+        updatePageParam({ imageOffsetX, imageOffsetY });
+      }
+      if (isResizingImage) {
+        setIsResizingImage(false);
+        updatePageParam({ imageScale });
+      }
+    };
+
+    if (isDraggingImage || isResizingImage) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingImage, isResizingImage, dragStartPos, dragStartOffset, resizeStartPos, resizeStartScale, imageOffsetX, imageOffsetY, imageScale]);
+
+  const handleImageMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingImage(true);
+    setDragStartPos({ x: e.clientX, y: e.clientY });
+    setDragStartOffset({ x: imageOffsetX, y: imageOffsetY });
+  };
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsResizingImage(true);
+    setResizeStartPos({ x: e.clientX, y: e.clientY });
+    setResizeStartScale(imageScale);
+  };
+
+  const handleImageWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 5 : -5;
+    const newScale = Math.max(20, Math.min(300, imageScale + delta));
+    setImageScale(newScale);
+    updatePageParam({ imageScale: newScale });
+  };
+
+  const handleAutoFitImage = () => {
+    setImageScale(100);
+    setImageOffsetX(0);
+    setImageOffsetY(0);
+    updatePageParam({ imageScale: 100, imageOffsetX: 0, imageOffsetY: 0 });
+  };
 
   // Kids smart outline extractor & dynamic color palette analyzer effect
   useEffect(() => {
@@ -997,7 +1081,15 @@ export default function SimpleWorkspaceView() {
                 </div>
 
                 {/* Sheet Content container */}
-                <div className="px-6 pt-11 pb-11 h-full flex flex-col justify-between select-none text-right relative overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
+                <div 
+                  className={`px-6 pb-6 h-full flex flex-col justify-between select-none text-right relative overflow-hidden transition-all duration-200 ${
+                    topMargin === '0cm' ? 'pt-1' :
+                    topMargin === '1.5cm' ? 'pt-4' :
+                    topMargin === '5cm' ? 'pt-14' :
+                    'pt-7'
+                  }`} 
+                  dir={isRtl ? 'rtl' : 'ltr'}
+                >
                   
                   {activePage.layoutType === 'activity-worksheet' ? (
                     <ActivityWorksheetView config={activePage.activityWorksheet} isAr={isAr} />
@@ -1064,52 +1156,138 @@ export default function SimpleWorkspaceView() {
                     )}
                   </div>
 
-                  {/* Dual Image Illustration Concept / Full Color Image */}
-                  <div className="flex-1 my-2 bg-slate-50/50 rounded-xl border border-slate-200/80 overflow-hidden relative flex flex-col items-center justify-center">
+                  {/* Dual Image Illustration Concept / Full Color Image with Direct Canvas Mouse Drag & Resize */}
+                  <div className="flex-1 my-1 bg-slate-50/50 rounded-xl border border-slate-200/80 overflow-hidden relative flex flex-col items-center justify-center">
                     {activePage.illustrationUrl ? (
-                      <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
-                        {isFullColorMode ? (
-                          <img 
-                            src={activePage.illustrationUrl} 
-                            alt={activePage.title || 'Full color image'} 
-                            referrerPolicy="no-referrer"
-                            className="max-w-full max-h-full object-contain transition-transform duration-150"
-                            style={{
-                              transform: `scale(${imageScale / 100}) translate(${imageOffsetX}px, ${imageOffsetY}px)`
+                      <div 
+                        className="w-full h-full relative overflow-hidden flex items-center justify-center group select-none"
+                        onMouseEnter={() => setIsImageHovered(true)}
+                        onMouseLeave={() => setIsImageHovered(false)}
+                        onWheel={handleImageWheel}
+                      >
+                        {/* On-canvas Overlay Controls */}
+                        <div className={`absolute top-2 left-1/2 -translate-x-1/2 z-30 transition-all duration-200 flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md text-white px-3 py-1 rounded-full shadow-xl border border-white/20 text-xs ${isImageHovered || isDraggingImage || isResizingImage ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
+                          <span className="text-[10px] font-bold text-purple-300 flex items-center gap-1">
+                            <Move className="w-3 h-3 animate-pulse" />
+                            {isAr ? 'اسحب بالفأرة للتحريك' : 'Drag with Mouse'}
+                          </span>
+                          <span className="w-px h-3 bg-white/20" />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newScale = Math.max(20, imageScale - 10);
+                              setImageScale(newScale);
+                              updatePageParam({ imageScale: newScale });
                             }}
-                          />
-                        ) : (
-                          <>
-                            {isProcessingOutline && (
-                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 z-10">
-                                <RefreshCw className="w-6 h-6 text-brand-500 animate-spin mb-1" />
-                                <span className="text-[9px] text-slate-400 font-bold">{isAr ? 'جاري استخلاص خطوط الرسم...' : 'Extracting outlines...'}</span>
-                              </div>
-                            )}
+                            className="p-1 hover:bg-white/20 rounded-full transition"
+                            title={isAr ? 'تصغير' : 'Zoom Out'}
+                          >
+                            <ZoomOut className="w-3.5 h-3.5 text-white" />
+                          </button>
+                          <span className="font-mono text-[11px] font-extrabold text-amber-300 px-1">{imageScale}%</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newScale = Math.min(300, imageScale + 10);
+                              setImageScale(newScale);
+                              updatePageParam({ imageScale: newScale });
+                            }}
+                            className="p-1 hover:bg-white/20 rounded-full transition"
+                            title={isAr ? 'تكبير' : 'Zoom In'}
+                          >
+                            <ZoomIn className="w-3.5 h-3.5 text-white" />
+                          </button>
+                          <span className="w-px h-3 bg-white/20" />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAutoFitImage();
+                            }}
+                            className="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white rounded-full text-[10px] font-bold transition flex items-center gap-1 shadow-xs"
+                            title={isAr ? 'ضبط تلقائي لملء الصفحة' : 'Auto Fit'}
+                          >
+                            <Maximize2 className="w-3 h-3" />
+                            {isAr ? 'ضبط تلقائي' : 'Auto Fit'}
+                          </button>
+                        </div>
 
-                            {/* 1. Large Copy: Clean Black & White outline drawing for coloring */}
+                        {/* Draggable & Resizable Image Element */}
+                        <div 
+                          className={`relative max-w-full max-h-full flex items-center justify-center transition-shadow ${isImageHovered || isDraggingImage || isResizingImage ? 'ring-2 ring-purple-500/80 ring-offset-2 rounded-lg' : ''}`}
+                          style={{
+                            transform: `scale(${imageScale / 100}) translate(${imageOffsetX}px, ${imageOffsetY}px)`,
+                            cursor: isDraggingImage ? 'grabbing' : 'grab',
+                            touchAction: 'none'
+                          }}
+                          onMouseDown={handleImageMouseDown}
+                        >
+                          {isFullColorMode ? (
                             <img 
-                              src={outlineDataUrl || activePage.illustrationUrl} 
-                              alt="Coloring outline" 
+                              src={activePage.illustrationUrl} 
+                              alt={activePage.title || 'Full color image'} 
                               referrerPolicy="no-referrer"
-                              className="w-full h-full object-contain mix-blend-multiply"
-                              style={!outlineDataUrl ? { filter: 'grayscale(100%) contrast(1000%) brightness(130%)' } : {}}
+                              className="max-w-full max-h-[580px] object-contain pointer-events-none select-none rounded"
                             />
+                          ) : (
+                            <>
+                              {isProcessingOutline && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 z-10">
+                                  <RefreshCw className="w-6 h-6 text-brand-500 animate-spin mb-1" />
+                                  <span className="text-[9px] text-slate-400 font-bold">{isAr ? 'جاري استخلاص خطوط الرسم...' : 'Extracting outlines...'}</span>
+                                </div>
+                              )}
 
-                            {/* 2. Small Copy: Floating original colored preview to assist color choice */}
-                            <div className="absolute top-2 right-2 w-14 h-18 bg-white border-2 border-brand-500 rounded-lg shadow-lg overflow-hidden flex flex-col items-center z-20 animate-fade-in">
-                              <div className="bg-brand-500 text-white text-[7px] font-sans font-bold w-full text-center py-0.5 leading-none select-none">
-                                {isAr ? 'دليل الألوان' : 'Color Guide'}
-                              </div>
                               <img 
-                                src={activePage.illustrationUrl} 
-                                alt="Original colored reference" 
+                                src={outlineDataUrl || activePage.illustrationUrl} 
+                                alt="Coloring outline" 
                                 referrerPolicy="no-referrer"
-                                className="w-full h-12 object-cover" 
+                                className="max-w-full max-h-[580px] object-contain mix-blend-multiply pointer-events-none select-none"
+                                style={!outlineDataUrl ? { filter: 'grayscale(100%) contrast(1000%) brightness(130%)' } : {}}
                               />
-                            </div>
-                          </>
-                        )}
+
+                              <div className="absolute top-2 right-2 w-14 h-18 bg-white border-2 border-brand-500 rounded-lg shadow-lg overflow-hidden flex flex-col items-center z-20 animate-fade-in pointer-events-none">
+                                <div className="bg-brand-500 text-white text-[7px] font-sans font-bold w-full text-center py-0.5 leading-none select-none">
+                                  {isAr ? 'دليل الألوان' : 'Color Guide'}
+                                </div>
+                                <img 
+                                  src={activePage.illustrationUrl} 
+                                  alt="Original colored reference" 
+                                  referrerPolicy="no-referrer"
+                                  className="w-full h-12 object-cover" 
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {/* Corner handles for interactive mouse drag resizing */}
+                          {(isImageHovered || isDraggingImage || isResizingImage) && (
+                            <>
+                              <div 
+                                onMouseDown={handleResizeStart}
+                                className="absolute -top-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم' : 'Resize'}
+                              />
+                              <div 
+                                onMouseDown={handleResizeStart}
+                                className="absolute -top-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم' : 'Resize'}
+                              />
+                              <div 
+                                onMouseDown={handleResizeStart}
+                                className="absolute -bottom-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم' : 'Resize'}
+                              />
+                              <div 
+                                onMouseDown={handleResizeStart}
+                                className="absolute -bottom-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم' : 'Resize'}
+                              />
+                            </>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center p-4 text-center space-y-2">
@@ -1498,6 +1676,42 @@ export default function SimpleWorkspaceView() {
                       </div>
                     </div>
 
+                    {/* Top Margin Control Box */}
+                    <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-2.5">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                          <Sliders className="w-3.5 h-3.5 text-brand-500" />
+                          {isAr ? 'الهامش العلوي للصفحة (Top Margin):' : 'Page Top Margin:'}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded">{topMargin}</span>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { val: '0cm', labelAr: 'بدون (0)', labelEn: '0 cm' },
+                          { val: '1.5cm', labelAr: '1.5 سم', labelEn: '1.5 cm' },
+                          { val: '3cm', labelAr: '3 سم', labelEn: '3 cm' },
+                          { val: '5cm', labelAr: '5 سم', labelEn: '5 cm' },
+                        ].map((m) => (
+                          <button
+                            key={m.val}
+                            type="button"
+                            onClick={() => {
+                              setTopMargin(m.val as any);
+                              updatePageParam({ topMargin: m.val as any });
+                            }}
+                            className={`py-1.5 px-1 text-center font-bold text-xs rounded-xl border transition ${
+                              topMargin === m.val
+                                ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
+                                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {isAr ? m.labelAr : m.labelEn}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Full Color Image Scale & Positioning Box OR Outline Extractor */}
                     {isFullColorMode ? (
                       <div className="bg-white border border-purple-200 p-5 rounded-2xl shadow-xs space-y-4">
@@ -1505,6 +1719,29 @@ export default function SimpleWorkspaceView() {
                           {isAr ? 'أدوات التحكم بالصورة الملونة' : 'Full Color Image Adjustments'}
                           <Sliders className="w-4 h-4 text-purple-600" />
                         </h4>
+
+                        {/* Mouse Interaction Tip Box */}
+                        <div className="bg-purple-50/80 border border-purple-200 p-3 rounded-xl text-right text-[11px] text-purple-900 leading-relaxed space-y-1">
+                          <div className="font-bold flex items-center justify-end gap-1 text-purple-700">
+                            {isAr ? '💡 التحكم المباشر بالفأرة على الصفحة:' : '💡 Direct Mouse Controls:'}
+                            <Move className="w-3.5 h-3.5" />
+                          </div>
+                          <p className="text-[10px] text-purple-800">
+                            {isAr 
+                              ? 'يمكنك سحب الصورة مباشرة بالفأرة على الورقة، أو استخدام النقاط الخمسة على زوايا الصورة للتكبير والتصغير، أو عجلة الفأرة (Scroll).'
+                              : 'Drag image directly on page with mouse, use corner handles to resize, or use mouse scroll wheel.'}
+                          </p>
+                        </div>
+
+                        {/* Quick Action: Auto Fit to Page */}
+                        <button
+                          type="button"
+                          onClick={handleAutoFitImage}
+                          className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-xs"
+                        >
+                          <Maximize2 className="w-4 h-4" />
+                          {isAr ? '⚡ ضبط تلقائي لحجم الصورة على الصفحة' : '⚡ Auto-fit Image to Page'}
+                        </button>
 
                         {/* Image Scale Slider */}
                         <div className="space-y-1.5">
@@ -1517,8 +1754,8 @@ export default function SimpleWorkspaceView() {
                           </div>
                           <input
                             type="range"
-                            min="50"
-                            max="150"
+                            min="20"
+                            max="300"
                             value={imageScale}
                             onChange={(e) => {
                               const val = Number(e.target.value);
@@ -1540,8 +1777,8 @@ export default function SimpleWorkspaceView() {
                           </div>
                           <input
                             type="range"
-                            min="-60"
-                            max="60"
+                            min="-250"
+                            max="250"
                             value={imageOffsetY}
                             onChange={(e) => {
                               const val = Number(e.target.value);
@@ -1563,8 +1800,8 @@ export default function SimpleWorkspaceView() {
                           </div>
                           <input
                             type="range"
-                            min="-60"
-                            max="60"
+                            min="-250"
+                            max="250"
                             value={imageOffsetX}
                             onChange={(e) => {
                               const val = Number(e.target.value);
