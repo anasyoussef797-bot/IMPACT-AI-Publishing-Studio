@@ -64,7 +64,7 @@ export default function SimpleWorkspaceView() {
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [dragStartOffset, setDragStartOffset] = useState({ x: 0, y: 0 });
   const [isResizingImage, setIsResizingImage] = useState(false);
-  const [stretchDirection, setStretchDirection] = useState<'x' | 'y' | 'both' | null>(null);
+  const [stretchDirection, setStretchDirection] = useState<'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se' | 'both' | null>(null);
   const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
   const [resizeStartScale, setResizeStartScale] = useState(100);
   const [resizeStartScaleX, setResizeStartScaleX] = useState(100);
@@ -329,22 +329,45 @@ export default function SimpleWorkspaceView() {
         const dx = e.clientX - resizeStartPos.x;
         const dy = e.clientY - resizeStartPos.y;
 
-        if (stretchDirection === 'x') {
-          const newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
-          setImageScaleX(newScaleX);
-        } else if (stretchDirection === 'y') {
-          const newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
-          setImageScaleY(newScaleY);
+        let newScaleX = resizeStartScaleX;
+        let newScaleY = resizeStartScaleY;
+        let newScale = resizeStartScale;
+
+        if (stretchDirection === 'e') {
+          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
+        } else if (stretchDirection === 'w') {
+          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX - dx));
+        } else if (stretchDirection === 's') {
+          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
+        } else if (stretchDirection === 'n') {
+          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY - dy));
+        } else if (stretchDirection === 'se') {
+          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
+          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
+          newScale = Math.max(20, Math.min(300, resizeStartScale + Math.round((dx + dy) / 2)));
+        } else if (stretchDirection === 'sw') {
+          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX - dx));
+          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
+          newScale = Math.max(20, Math.min(300, resizeStartScale + Math.round((-dx + dy) / 2)));
+        } else if (stretchDirection === 'ne') {
+          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
+          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY - dy));
+          newScale = Math.max(20, Math.min(300, resizeStartScale + Math.round((dx - dy) / 2)));
+        } else if (stretchDirection === 'nw') {
+          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX - dx));
+          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY - dy));
+          newScale = Math.max(20, Math.min(300, resizeStartScale + Math.round((-dx - dy) / 2)));
         } else {
-          // both/corners
+          // both / default uniform corner
           const distChange = Math.round((dx + dy) / 2);
-          const newScale = Math.max(20, Math.min(300, resizeStartScale + distChange));
-          const newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
-          const newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
-          setImageScale(newScale);
-          setImageScaleX(newScaleX);
-          setImageScaleY(newScaleY);
+          newScale = Math.max(20, Math.min(300, resizeStartScale + distChange));
+          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
+          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
         }
+
+        setImageScale(newScale);
+        setImageScaleX(newScaleX);
+        setImageScaleY(newScaleY);
       }
     };
 
@@ -377,7 +400,7 @@ export default function SimpleWorkspaceView() {
     setDragStartOffset({ x: imageOffsetX, y: imageOffsetY });
   };
 
-  const handleResizeStart = (e: React.MouseEvent, dir: 'x' | 'y' | 'both' = 'both') => {
+  const handleResizeStart = (e: React.MouseEvent, dir: 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se' | 'both' = 'both') => {
     e.stopPropagation();
     e.preventDefault();
     setIsResizingImage(true);
@@ -1311,50 +1334,50 @@ export default function SimpleWorkspaceView() {
                             <>
                               {/* Corners */}
                               <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'both')}
+                                onMouseDown={(e) => handleResizeStart(e, 'nw')}
                                 className="absolute -top-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة' : 'Resize Corner'}
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة (أعلى يسار)' : 'Resize Corner (NW)'}
                               />
                               <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'both')}
+                                onMouseDown={(e) => handleResizeStart(e, 'ne')}
                                 className="absolute -top-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة' : 'Resize Corner'}
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة (أعلى يمين)' : 'Resize Corner (NE)'}
                               />
                               <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'both')}
+                                onMouseDown={(e) => handleResizeStart(e, 'sw')}
                                 className="absolute -bottom-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة' : 'Resize Corner'}
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة (أسفل يسار)' : 'Resize Corner (SW)'}
                               />
                               <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'both')}
+                                onMouseDown={(e) => handleResizeStart(e, 'se')}
                                 className="absolute -bottom-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة' : 'Resize Corner'}
+                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة (أسفل يمين)' : 'Resize Corner (SE)'}
                               />
 
                               {/* Freeform Side Stretch Handles */}
-                              {/* Top Side (Stretch Vertical Y) */}
+                              {/* Top Side (Stretch Vertical N) */}
                               <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'y')}
+                                onMouseDown={(e) => handleResizeStart(e, 'n')}
                                 className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-10 h-3 bg-amber-500 border border-white rounded-full shadow-lg cursor-ns-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
-                                title={isAr ? 'مط/كمش رأسي (Vertical Stretch Y)' : 'Vertical Stretch Y'}
+                                title={isAr ? 'مط/كمش رأسي من الأعلى (Vertical N)' : 'Vertical Stretch (N)'}
                               />
-                              {/* Bottom Side (Stretch Vertical Y) */}
+                              {/* Bottom Side (Stretch Vertical S) */}
                               <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'y')}
+                                onMouseDown={(e) => handleResizeStart(e, 's')}
                                 className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-10 h-3 bg-amber-500 border border-white rounded-full shadow-lg cursor-ns-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
-                                title={isAr ? 'مط/كمش رأسي (Vertical Stretch Y)' : 'Vertical Stretch Y'}
+                                title={isAr ? 'مط/كمش رأسي من الأسفل (Vertical S)' : 'Vertical Stretch (S)'}
                               />
-                              {/* Left Side (Stretch Horizontal X) */}
+                              {/* Left Side (Stretch Horizontal W) */}
                               <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'x')}
+                                onMouseDown={(e) => handleResizeStart(e, 'w')}
                                 className="absolute top-1/2 -left-2.5 -translate-y-1/2 w-3 h-10 bg-amber-500 border border-white rounded-full shadow-lg cursor-ew-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
-                                title={isAr ? 'مط/كمش أفقي (Horizontal Stretch X)' : 'Horizontal Stretch X'}
+                                title={isAr ? 'مط/كمش أفقي من اليسار (Horizontal W)' : 'Horizontal Stretch (W)'}
                               />
-                              {/* Right Side (Stretch Horizontal X) */}
+                              {/* Right Side (Stretch Horizontal E) */}
                               <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'x')}
+                                onMouseDown={(e) => handleResizeStart(e, 'e')}
                                 className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-3 h-10 bg-amber-500 border border-white rounded-full shadow-lg cursor-ew-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
-                                title={isAr ? 'مط/كمش أفقي (Horizontal Stretch X)' : 'Horizontal Stretch X'}
+                                title={isAr ? 'مط/كمش أفقي من اليمين (Horizontal E)' : 'Horizontal Stretch (E)'}
                               />
                             </>
                           )}

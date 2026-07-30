@@ -45,6 +45,7 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (isOpen && imageUrl) {
@@ -59,7 +60,7 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
 
   if (!isOpen || !workingImage) return null;
 
-  // Handle Crop handle dragging
+  // Handle Crop handle dragging relative to the actual rendered image dimensions
   const handleMouseDown = (handle: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -72,9 +73,11 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!draggingHandle || !containerRef.current) return;
+    if (!draggingHandle || !imgRef.current) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
+    const rect = imgRef.current.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
     const dxPercent = ((e.clientX - dragStart.x) / rect.width) * 100;
     const dyPercent = ((e.clientY - dragStart.y) / rect.height) * 100;
 
@@ -85,20 +88,20 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
       left = Math.max(0, Math.min(100 - width, left + dxPercent));
     } else {
       if (draggingHandle.includes('n')) {
-        const newTop = Math.max(0, Math.min(top + height - 10, top + dyPercent));
+        const newTop = Math.max(0, Math.min(top + height - 5, top + dyPercent));
         height = height + (top - newTop);
         top = newTop;
       }
       if (draggingHandle.includes('s')) {
-        height = Math.max(10, Math.min(100 - top, height + dyPercent));
+        height = Math.max(5, Math.min(100 - top, height + dyPercent));
       }
       if (draggingHandle.includes('w')) {
-        const newLeft = Math.max(0, Math.min(left + width - 10, left + dxPercent));
+        const newLeft = Math.max(0, Math.min(left + width - 5, left + dxPercent));
         width = width + (left - newLeft);
         left = newLeft;
       }
       if (draggingHandle.includes('e')) {
-        width = Math.max(10, Math.min(100 - left, width + dxPercent));
+        width = Math.max(5, Math.min(100 - left, width + dxPercent));
       }
     }
 
@@ -112,30 +115,37 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
   // Perform Crop on Canvas
   const handleApplyCrop = () => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (workingImage.startsWith('http')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
-      const sourceX = (cropBox.left / 100) * img.naturalWidth;
-      const sourceY = (cropBox.top / 100) * img.naturalHeight;
-      const sourceW = (cropBox.width / 100) * img.naturalWidth;
-      const sourceH = (cropBox.height / 100) * img.naturalHeight;
+        const sourceX = Math.max(0, Math.floor((cropBox.left / 100) * img.naturalWidth));
+        const sourceY = Math.max(0, Math.floor((cropBox.top / 100) * img.naturalHeight));
+        const sourceW = Math.min(img.naturalWidth - sourceX, Math.floor((cropBox.width / 100) * img.naturalWidth));
+        const sourceH = Math.min(img.naturalHeight - sourceY, Math.floor((cropBox.height / 100) * img.naturalHeight));
 
-      canvas.width = Math.max(1, sourceW);
-      canvas.height = Math.max(1, sourceH);
+        canvas.width = Math.max(1, sourceW);
+        canvas.height = Math.max(1, sourceH);
 
-      ctx.drawImage(
-        img,
-        sourceX, sourceY, sourceW, sourceH,
-        0, 0, canvas.width, canvas.height
-      );
+        ctx.drawImage(
+          img,
+          sourceX, sourceY, sourceW, sourceH,
+          0, 0, canvas.width, canvas.height
+        );
 
-      const croppedUrl = canvas.toDataURL('image/png');
-      setWorkingImage(croppedUrl);
-      setCropBox({ top: 2, left: 2, width: 96, height: 96 });
+        const croppedUrl = canvas.toDataURL('image/png');
+        setWorkingImage(croppedUrl);
+        setCropBox({ top: 2, left: 2, width: 96, height: 96 });
+      } catch (err) {
+        console.error('Crop failed:', err);
+      }
     };
+    img.onerror = (e) => console.error('Image load failed for crop', e);
     img.src = workingImage;
   };
 
@@ -144,86 +154,103 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
     setIsProcessingBg(true);
     setTimeout(() => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      if (workingImage.startsWith('http')) {
+        img.crossOrigin = 'anonymous';
+      }
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          setIsProcessingBg(false);
-          return;
-        }
-
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-
-        ctx.drawImage(img, 0, 0);
-
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imgData.data;
-        const w = canvas.width;
-        const h = canvas.height;
-
-        // Threshold tolerance calculation (0-255)
-        const threshold = 255 - (bgTolerance * 2.55);
-
-        if (removeMode === 'all_white') {
-          // Turn all light/white pixels transparent
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            // Check brightness/whiteness
-            if (r >= threshold && g >= threshold && b >= threshold) {
-              data[i + 3] = 0; // Alpha transparent
-            }
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            setIsProcessingBg(false);
+            return;
           }
-        } else {
-          // Flood Fill Outer Edge Background removal (preserves inner white details)
-          const visited = new Uint8Array(w * h);
-          const queue: number[] = [];
 
-          // Helper to check if pixel is background (white/light)
-          const isWhite = (idx: number) => {
-            const px = idx * 4;
-            return data[px] >= threshold && data[px + 1] >= threshold && data[px + 2] >= threshold;
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+
+          ctx.drawImage(img, 0, 0);
+
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imgData.data;
+          const w = canvas.width;
+          const h = canvas.height;
+
+          // Threshold tolerance calculation (0-255)
+          const threshold = 255 - (bgTolerance * 2.55);
+
+          const isWhitePixel = (r: number, g: number, b: number, a: number) => {
+            if (a === 0) return true;
+            const minVal = Math.min(r, g, b);
+            const maxDiff = Math.max(r, g, b) - Math.min(r, g, b);
+            // High brightness and low color variance = white/light background
+            return minVal >= threshold && maxDiff < (bgTolerance * 1.5 + 25);
           };
 
-          // Seed outer border pixels
-          for (let x = 0; x < w; x++) {
-            queue.push(x); // top edge
-            queue.push((h - 1) * w + x); // bottom edge
-          }
-          for (let y = 0; y < h; y++) {
-            queue.push(y * w); // left edge
-            queue.push(y * w + (w - 1)); // right edge
-          }
+          if (removeMode === 'all_white') {
+            // Turn all light/white pixels transparent
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              const a = data[i + 3];
+              if (isWhitePixel(r, g, b, a)) {
+                data[i + 3] = 0; // Alpha transparent
+              }
+            }
+          } else {
+            // Flood Fill Outer Edge Background removal (preserves inner white details)
+            const visited = new Uint8Array(w * h);
+            const queue: number[] = [];
 
-          while (queue.length > 0) {
-            const idx = queue.pop()!;
-            if (visited[idx]) continue;
-            visited[idx] = 1;
+            const isWhite = (idx: number) => {
+              const px = idx * 4;
+              return isWhitePixel(data[px], data[px + 1], data[px + 2], data[px + 3]);
+            };
 
-            if (isWhite(idx)) {
-              data[idx * 4 + 3] = 0; // Make transparent
+            // Seed outer border pixels
+            for (let x = 0; x < w; x++) {
+              queue.push(x); // top edge
+              queue.push((h - 1) * w + x); // bottom edge
+            }
+            for (let y = 0; y < h; y++) {
+              queue.push(y * w); // left edge
+              queue.push(y * w + (w - 1)); // right edge
+            }
 
-              const x = idx % w;
-              const y = Math.floor(idx / w);
+            while (queue.length > 0) {
+              const idx = queue.pop()!;
+              if (visited[idx]) continue;
+              visited[idx] = 1;
 
-              if (x > 0 && !visited[idx - 1]) queue.push(idx - 1);
-              if (x < w - 1 && !visited[idx + 1]) queue.push(idx + 1);
-              if (y > 0 && !visited[idx - w]) queue.push(idx - w);
-              if (y < h - 1 && !visited[idx + w]) queue.push(idx + w);
+              if (isWhite(idx)) {
+                data[idx * 4 + 3] = 0; // Make transparent
+
+                const x = idx % w;
+                const y = Math.floor(idx / w);
+
+                if (x > 0 && !visited[idx - 1]) queue.push(idx - 1);
+                if (x < w - 1 && !visited[idx + 1]) queue.push(idx + 1);
+                if (y > 0 && !visited[idx - w]) queue.push(idx - w);
+                if (y < h - 1 && !visited[idx + w]) queue.push(idx + w);
+              }
             }
           }
-        }
 
-        ctx.putImageData(imgData, 0, 0);
-        const resultPng = canvas.toDataURL('image/png');
-        setWorkingImage(resultPng);
+          ctx.putImageData(imgData, 0, 0);
+          const resultPng = canvas.toDataURL('image/png');
+          setWorkingImage(resultPng);
+          setIsProcessingBg(false);
+        } catch (err) {
+          console.error('BG removal failed:', err);
+          setIsProcessingBg(false);
+        }
+      };
+      img.onerror = () => {
         setIsProcessingBg(false);
       };
       img.src = workingImage;
-    }, 100);
+    }, 50);
   };
 
   // Perform Rotation
@@ -316,7 +343,7 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
             {/* Transparent Checkered Pattern Container */}
             <div 
               ref={containerRef}
-              className="relative max-w-full max-h-[480px] flex items-center justify-center rounded-xl overflow-hidden shadow-2xl border border-white/10"
+              className="relative max-w-full max-h-[480px] flex items-center justify-center rounded-xl overflow-hidden shadow-2xl border border-white/10 p-2"
               style={{
                 backgroundImage: 'radial-gradient(#ffffff 15%, transparent 15%), radial-gradient(#ffffff 15%, transparent 15%)',
                 backgroundPosition: '0 0, 10px 10px',
@@ -324,48 +351,51 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
                 backgroundColor: '#1e293b'
               }}
             >
-              <img
-                src={workingImage}
-                alt="Image to edit"
-                className="max-w-full max-h-[460px] object-contain pointer-events-none"
-              />
+              <div className="relative inline-block max-w-full max-h-[460px]">
+                <img
+                  ref={imgRef}
+                  src={workingImage}
+                  alt="Image to edit"
+                  className="max-w-full max-h-[460px] object-contain pointer-events-none select-none block"
+                />
 
-              {/* Crop Box Overlay */}
-              {activeTab === 'crop' && (
-                <div
-                  className="absolute border-2 border-brand-400 bg-brand-500/15 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] cursor-move"
-                  style={{
-                    top: `${cropBox.top}%`,
-                    left: `${cropBox.left}%`,
-                    width: `${cropBox.width}%`,
-                    height: `${cropBox.height}%`,
-                  }}
-                  onMouseDown={(e) => handleMouseDown('move', e)}
-                >
-                  {/* Grid Lines inside crop box */}
-                  <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-40">
-                    <div className="border-r border-b border-white" />
-                    <div className="border-r border-b border-white" />
-                    <div className="border-b border-white" />
-                    <div className="border-r border-b border-white" />
-                    <div className="border-r border-b border-white" />
-                    <div className="border-b border-white" />
+                {/* Crop Box Overlay */}
+                {activeTab === 'crop' && (
+                  <div
+                    className="absolute border-2 border-brand-400 bg-brand-500/15 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] cursor-move z-30"
+                    style={{
+                      top: `${cropBox.top}%`,
+                      left: `${cropBox.left}%`,
+                      width: `${cropBox.width}%`,
+                      height: `${cropBox.height}%`,
+                    }}
+                    onMouseDown={(e) => handleMouseDown('move', e)}
+                  >
+                    {/* Grid Lines inside crop box */}
+                    <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-40">
+                      <div className="border-r border-b border-white" />
+                      <div className="border-r border-b border-white" />
+                      <div className="border-b border-white" />
+                      <div className="border-r border-b border-white" />
+                      <div className="border-r border-b border-white" />
+                      <div className="border-b border-white" />
+                    </div>
+
+                    {/* Handles (4 Corners + 4 Sides) */}
+                    {/* Corners */}
+                    <div onMouseDown={(e) => handleMouseDown('nw', e)} className="absolute -top-2 -left-2 w-4 h-4 bg-brand-400 border-2 border-white rounded-full cursor-nwse-resize shadow-md hover:scale-125 transition-transform" />
+                    <div onMouseDown={(e) => handleMouseDown('ne', e)} className="absolute -top-2 -right-2 w-4 h-4 bg-brand-400 border-2 border-white rounded-full cursor-nesw-resize shadow-md hover:scale-125 transition-transform" />
+                    <div onMouseDown={(e) => handleMouseDown('sw', e)} className="absolute -bottom-2 -left-2 w-4 h-4 bg-brand-400 border-2 border-white rounded-full cursor-nesw-resize shadow-md hover:scale-125 transition-transform" />
+                    <div onMouseDown={(e) => handleMouseDown('se', e)} className="absolute -bottom-2 -right-2 w-4 h-4 bg-brand-400 border-2 border-white rounded-full cursor-nwse-resize shadow-md hover:scale-125 transition-transform" />
+
+                    {/* Sides */}
+                    <div onMouseDown={(e) => handleMouseDown('n', e)} className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-3 bg-brand-400 border border-white rounded-full cursor-ns-resize shadow-md hover:scale-125 transition-transform" />
+                    <div onMouseDown={(e) => handleMouseDown('s', e)} className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-3 bg-brand-400 border border-white rounded-full cursor-ns-resize shadow-md hover:scale-125 transition-transform" />
+                    <div onMouseDown={(e) => handleMouseDown('w', e)} className="absolute top-1/2 -left-2 -translate-y-1/2 w-3 h-8 bg-brand-400 border border-white rounded-full cursor-ew-resize shadow-md hover:scale-125 transition-transform" />
+                    <div onMouseDown={(e) => handleMouseDown('e', e)} className="absolute top-1/2 -right-2 -translate-y-1/2 w-3 h-8 bg-brand-400 border border-white rounded-full cursor-ew-resize shadow-md hover:scale-125 transition-transform" />
                   </div>
-
-                  {/* Handles (4 Corners + 4 Sides) */}
-                  {/* Corners */}
-                  <div onMouseDown={(e) => handleMouseDown('nw', e)} className="absolute -top-2 -left-2 w-4 h-4 bg-brand-400 border-2 border-white rounded-full cursor-nwse-resize shadow-md" />
-                  <div onMouseDown={(e) => handleMouseDown('ne', e)} className="absolute -top-2 -right-2 w-4 h-4 bg-brand-400 border-2 border-white rounded-full cursor-nesw-resize shadow-md" />
-                  <div onMouseDown={(e) => handleMouseDown('sw', e)} className="absolute -bottom-2 -left-2 w-4 h-4 bg-brand-400 border-2 border-white rounded-full cursor-nesw-resize shadow-md" />
-                  <div onMouseDown={(e) => handleMouseDown('se', e)} className="absolute -bottom-2 -right-2 w-4 h-4 bg-brand-400 border-2 border-white rounded-full cursor-nwse-resize shadow-md" />
-
-                  {/* Sides */}
-                  <div onMouseDown={(e) => handleMouseDown('n', e)} className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-3 bg-brand-400 border border-white rounded-full cursor-ns-resize shadow-md" />
-                  <div onMouseDown={(e) => handleMouseDown('s', e)} className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-3 bg-brand-400 border border-white rounded-full cursor-ns-resize shadow-md" />
-                  <div onMouseDown={(e) => handleMouseDown('w', e)} className="absolute top-1/2 -left-2 -translate-y-1/2 w-3 h-8 bg-brand-400 border border-white rounded-full cursor-ew-resize shadow-md" />
-                  <div onMouseDown={(e) => handleMouseDown('e', e)} className="absolute top-1/2 -right-2 -translate-y-1/2 w-3 h-8 bg-brand-400 border border-white rounded-full cursor-ew-resize shadow-md" />
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Quick Canvas Helper hint */}
