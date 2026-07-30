@@ -122,6 +122,8 @@ export interface PageImageItem {
   scaleY?: number;
   offsetX?: number;
   offsetY?: number;
+  widthCm?: number;
+  heightCm?: number;
 }
 
 export interface Page {
@@ -151,8 +153,12 @@ export interface Page {
   imageOffsetY?: number; // vertical offset in % or px
   imageOffsetX?: number; // horizontal offset in % or px
   topMargin?: '0cm' | '1.5cm' | '3cm' | '5cm' | number; // page top margin control
-  textSize?: number; // font size in px e.g. 14, 18, 24, 32
+  textSize?: number; // font size in px e.g. 8 to 36
   textColor?: string; // hex string e.g. '#0f172a'
+  lineHeight?: number; // e.g. 1.0, 1.2, 1.5, 1.8, 2.0
+  textAlign?: 'right' | 'center' | 'left' | 'justify';
+  fontWeight?: 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold';
+  textPadding?: number; // inner card padding in px
   titleSize?: number; // font size for title in px e.g. 18, 22, 28, 36
   titleColor?: string; // hex string for title
   titlePosition?: 'top' | 'middle' | 'bottom' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';

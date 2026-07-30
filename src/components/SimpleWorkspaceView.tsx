@@ -1072,24 +1072,100 @@ export default function SimpleWorkspaceView() {
                   {activePage.layoutType === 'activity-worksheet' ? (
                     <ActivityWorksheetView config={activePage.activityWorksheet} isAr={isAr} />
                   ) : activePage.layoutType === 'text-only' ? (
-                    <div className="w-full h-full flex flex-col justify-between p-6 bg-white rounded-xl select-none text-right" dir={isRtl ? 'rtl' : 'ltr'}>
+                    <div className="w-full h-full flex flex-col justify-between p-5 bg-white rounded-xl select-none text-right overflow-y-auto max-h-full relative space-y-4" dir={isRtl ? 'rtl' : 'ltr'}>
                       <div>
-                        <h2 
-                          className="font-display font-extrabold tracking-tight leading-snug mb-4 text-center"
-                          style={{ fontSize: `${titleSize || activePage.titleSize || 26}px`, color: titleColor || activePage.titleColor || '#0f172a' }}
-                        >
-                          {customTitle || activePage.title || (isAr ? 'عنوان الصفحة النصية' : 'Text Page Title')}
-                        </h2>
+                        {/* Page Title */}
+                        {(customTitle || activePage.title) && (
+                          <h2 
+                            className="font-display font-extrabold tracking-tight leading-snug mb-3 text-center"
+                            style={{ 
+                              fontSize: `${titleSize || activePage.titleSize || 26}px`, 
+                              color: titleColor || activePage.titleColor || '#0f172a' 
+                            }}
+                          >
+                            {customTitle || activePage.title}
+                          </h2>
+                        )}
                         
-                        <div className={`p-5 rounded-xl leading-relaxed whitespace-pre-wrap ${textBgCard || activePage.textBgCard ? 'bg-slate-50 border border-slate-200 shadow-2xs' : ''}`}>
-                          <p style={{ fontSize: `${textSize || activePage.textSize || 16}px`, color: textColor || activePage.textColor || '#334155' }}>
-                            {customText || activePage.textContent || (isAr ? 'أدخل النص التعليمي أو القصة هنا...' : 'Enter text content here...')}
-                          </p>
-                        </div>
+                        {/* Body Text */}
+                        {(customText || activePage.textContent) && (
+                          <div 
+                            className={`rounded-xl whitespace-pre-wrap transition-all ${textBgCard || activePage.textBgCard ? 'bg-slate-50 border border-slate-200/90 shadow-2xs' : ''}`}
+                            style={{ padding: `${activePage.textPadding || 16}px` }}
+                          >
+                            <p 
+                              style={{ 
+                                fontSize: `${textSize || activePage.textSize || 14}px`, 
+                                color: textColor || activePage.textColor || '#334155',
+                                lineHeight: activePage.lineHeight || 1.6,
+                                textAlign: (activePage.textAlign || 'right') as any,
+                                fontWeight: activePage.fontWeight || 'normal',
+                              }}
+                            >
+                              {customText || activePage.textContent}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
+                      {/* Render Draggable Images on Text Page if present */}
+                      {getPageImages(activePage).length > 0 && (
+                        <div className="my-2 relative min-h-[160px] flex flex-wrap items-center justify-center gap-3">
+                          {getPageImages(activePage).map((imgItem) => {
+                            const isSelected = selectedImageId === imgItem.id || getPageImages(activePage).length === 1;
+                            const imgScale = imgItem.scale || 100;
+                            const imgScaleX = imgItem.scaleX || 100;
+                            const imgScaleY = imgItem.scaleY || 100;
+                            const imgOffsetX = imgItem.offsetX || 0;
+                            const imgOffsetY = imgItem.offsetY || 0;
+                            const widthCm = imgItem.widthCm || Math.round((14.0 * (imgScale / 100) * (imgScaleX / 100)) * 10) / 10;
+                            const heightCm = imgItem.heightCm || Math.round((12.0 * (imgScale / 100) * (imgScaleY / 100)) * 10) / 10;
+
+                            return (
+                              <div 
+                                key={imgItem.id}
+                                className={`relative flex items-center justify-center transition-shadow m-2 ${isSelected ? 'ring-2 ring-purple-500/80 ring-offset-2 rounded-lg' : 'hover:ring-1 hover:ring-purple-300 rounded-lg'}`}
+                                style={{
+                                  transform: `scale(${imgScale / 100}) scale(${imgScaleX / 100}, ${imgScaleY / 100}) translate(${imgOffsetX}px, ${imgOffsetY}px)`,
+                                  cursor: isDraggingImage && activeDragImgId === imgItem.id ? 'grabbing' : 'grab',
+                                  touchAction: 'none'
+                                }}
+                                onMouseDown={(e) => handleImageMouseDown(e, imgItem.id)}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteImage(imgItem.id);
+                                  }}
+                                  className="absolute -top-3 -right-3 w-6 h-6 bg-rose-600 hover:bg-rose-700 text-white rounded-full flex items-center justify-center shadow-lg font-bold text-xs z-50"
+                                  title={isAr ? 'حذف الصورة' : 'Delete'}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+
+                                <img 
+                                  src={imgItem.url} 
+                                  alt="Text page image" 
+                                  referrerPolicy="no-referrer"
+                                  className="max-w-full max-h-[280px] object-contain pointer-events-none select-none rounded"
+                                />
+
+                                {/* CM Badge overlay */}
+                                {isSelected && (
+                                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded shadow-md z-50 whitespace-nowrap">
+                                    📐 {widthCm} سم × {heightCm} سم
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Extra Callout Box */}
                       {(extraText || activePage.extraText) && (
-                        <div className={`mt-4 p-4 rounded-xl ${extraTextBgCard || activePage.extraTextBgCard ? 'bg-amber-50 border border-amber-300 text-amber-900' : 'text-blue-700'}`}>
+                        <div className={`p-3.5 rounded-xl ${extraTextBgCard || activePage.extraTextBgCard ? 'bg-amber-50 border border-amber-300 text-amber-900 shadow-2xs' : 'text-blue-700'}`}>
                           <p className="font-bold text-xs whitespace-pre-wrap" style={{ fontSize: `${extraTextSize || activePage.extraTextSize || 13}px` }}>
                             {extraText || activePage.extraText}
                           </p>
@@ -1298,6 +1374,11 @@ export default function SimpleWorkspaceView() {
                                     className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-3 h-10 bg-amber-500 border border-white rounded-full shadow-lg cursor-ew-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
                                     title={isAr ? 'مط/كمش أفقي من اليمين' : 'Horizontal Stretch (E)'}
                                   />
+
+                                  {/* Floating Centimeter Dimensions Badge */}
+                                  <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border border-white/20 shadow-lg z-50 whitespace-nowrap pointer-events-none">
+                                    📐 {imgItem.widthCm || (Math.round((14.0 * (imgScale / 100) * (imgScaleX / 100)) * 10) / 10)} سم × {imgItem.heightCm || (Math.round((12.0 * (imgScale / 100) * (imgScaleY / 100)) * 10) / 10)} سم
+                                  </div>
                                 </>
                               )}
                             </div>
@@ -1724,6 +1805,60 @@ export default function SimpleWorkspaceView() {
                           {isAr ? '⚡ ضبط تلقائي لحجم الصورة على الصفحة' : '⚡ Auto-fit Image to Page'}
                         </button>
 
+                        {/* Centimeter Dimensions Direct Controls */}
+                        <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
+                          <label className="block text-xs font-bold text-purple-900 text-right">
+                            {isAr ? '📐 تحديد الأبعاد بالسنتيمتر (cm):' : '📐 Centimeter Dimensions (cm):'}
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <span className="block text-[10px] text-purple-800 font-bold mb-0.5 text-right">
+                                {isAr ? 'العرض (cm):' : 'Width (cm):'}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <input 
+                                  type="number"
+                                  step="0.5"
+                                  min="1"
+                                  max="21"
+                                  value={(14.0 * (imageScale / 100) * (imageScaleX / 100)).toFixed(1)}
+                                  onChange={(e) => {
+                                    const wCm = Number(e.target.value) || 10;
+                                    const newScaleX = Math.round((wCm / (14.0 * (imageScale / 100))) * 100);
+                                    setImageScaleX(newScaleX);
+                                    updatePageParam({ imageScaleX: newScaleX });
+                                  }}
+                                  className="w-full p-1.5 bg-white border border-purple-300 rounded text-center text-xs font-mono font-bold text-purple-900"
+                                />
+                                <span className="text-[10px] font-bold text-purple-700">سم</span>
+                              </div>
+                            </div>
+
+                            <div>
+                              <span className="block text-[10px] text-purple-800 font-bold mb-0.5 text-right">
+                                {isAr ? 'الارتفاع (cm):' : 'Height (cm):'}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <input 
+                                  type="number"
+                                  step="0.5"
+                                  min="1"
+                                  max="29"
+                                  value={(12.0 * (imageScale / 100) * (imageScaleY / 100)).toFixed(1)}
+                                  onChange={(e) => {
+                                    const hCm = Number(e.target.value) || 10;
+                                    const newScaleY = Math.round((hCm / (12.0 * (imageScale / 100))) * 100);
+                                    setImageScaleY(newScaleY);
+                                    updatePageParam({ imageScaleY: newScaleY });
+                                  }}
+                                  className="w-full p-1.5 bg-white border border-purple-300 rounded text-center text-xs font-mono font-bold text-purple-900"
+                                />
+                                <span className="text-[10px] font-bold text-purple-700">سم</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Image Scale Slider (Uniform) */}
                         <div className="space-y-1.5">
                           <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
@@ -2118,8 +2253,8 @@ export default function SimpleWorkspaceView() {
                                 {isAr ? 'حجم خط النص التوجيهي:' : 'Body Text Size:'}
                               </label>
                             </div>
-                            <div className="grid grid-cols-6 gap-1">
-                              {[11, 13, 16, 20, 24, 30].map((sz) => (
+                            <div className="grid grid-cols-5 gap-1">
+                              {[8, 10, 12, 14, 16, 18, 20, 24, 28, 32].map((sz) => (
                                 <button
                                   key={sz}
                                   type="button"
@@ -2127,13 +2262,44 @@ export default function SimpleWorkspaceView() {
                                     setTextSize(sz);
                                     updatePageParam({ textSize: sz });
                                   }}
-                                  className={`py-1.5 text-[11px] font-bold rounded-lg transition border ${
+                                  className={`py-1.5 text-[10px] font-bold rounded-lg transition border ${
                                     textSize === sz
                                       ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
                                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                                   }`}
                                 >
                                   {sz}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Line Height Control */}
+                          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                            <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold text-right">
+                              {isAr ? 'تباعد الأسطر (Line Spacing):' : 'Line Height:'}
+                            </label>
+                            <div className="grid grid-cols-5 gap-1">
+                              {[
+                                { val: 1.0, label: '1.0' },
+                                { val: 1.3, label: '1.3' },
+                                { val: 1.6, label: '1.6' },
+                                { val: 1.9, label: '1.9' },
+                                { val: 2.2, label: '2.2' },
+                              ].map((lh) => (
+                                <button
+                                  key={lh.val}
+                                  type="button"
+                                  onClick={() => {
+                                    updatePageParam({ lineHeight: lh.val });
+                                  }}
+                                  className={`py-1 text-[10px] font-bold rounded-lg transition border ${
+                                    (activePage.lineHeight || 1.6) === lh.val
+                                      ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {lh.label}
                                 </button>
                               ))}
                             </div>
