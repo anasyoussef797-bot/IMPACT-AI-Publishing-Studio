@@ -10,11 +10,11 @@ import {
   BookOpen, Plus, Trash2, Printer, Sparkles, Image as ImageIcon, Upload, 
   ChevronLeft, ChevronRight, PenTool, Layout, Wand2, Type, Check,
   AlertCircle, Star, Palette, HelpCircle, ArrowLeftRight, Search, 
-  RefreshCw, Scissors, Settings, ExternalLink, FileUp, Move, ZoomIn, ZoomOut, Sliders, Maximize2, Layers
+  RefreshCw, Scissors, Settings, ExternalLink, FileUp, Move, ZoomIn, ZoomOut, Sliders, Maximize2, Layers, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import PdfImportModal from './PdfImportModal';
-import { Page } from '../types';
+import { Page, PageImageItem } from '../types';
 import { ActivityWorksheetView } from './ActivityWorksheetView';
 import { ActivityWorksheetEditor } from './ActivityWorksheetEditor';
 import { TextPageEditor } from './TextPageEditor';
@@ -114,24 +114,34 @@ export default function SimpleWorkspaceView() {
   const instLogoInputRef = useRef<HTMLInputElement>(null);
   const nurseryLogoInputRef = useRef<HTMLInputElement>(null);
 
-  // Search Engine States
-  const [searchQuery, setSearchQuery] = useState('');
-  const [directImageUrl, setDirectImageUrl] = useState('');
-  const [isSearchingWeb, setIsSearchingWeb] = useState(false);
-  const [webSearchResults, setWebSearchResults] = useState<Array<{ name: string; url: string; prompt: string }>>([]);
+  // Multi-Image & Selected Image State
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [editingImageId, setEditingImageId] = useState<string | null>(null);
+  const [activeDragImgId, setActiveDragImgId] = useState<string | null>(null);
+  const [activeResizeImgId, setActiveResizeImgId] = useState<string | null>(null);
+
+  // Helper to get array of images on active page
+  const getPageImages = (page: Page | null | undefined): PageImageItem[] => {
+    if (!page) return [];
+    if (page.pageImages && page.pageImages.length > 0) {
+      return page.pageImages;
+    }
+    if (page.illustrationUrl) {
+      return [{
+        id: 'default_img',
+        url: page.illustrationUrl,
+        scale: page.imageScale || 100,
+        scaleX: page.imageScaleX || 100,
+        scaleY: page.imageScaleY || 100,
+        offsetX: page.imageOffsetX || 0,
+        offsetY: page.imageOffsetY || 0,
+      }];
+    }
+    return [];
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isAr = uiLanguage === 'ar';
-
-  const handleApplyDirectUrl = () => {
-    if (!directImageUrl.trim() || !activePage) return;
-    updatePage(activePage.id, {
-      illustrationUrl: directImageUrl.trim(),
-      layoutType: 'coloring'
-    });
-    setDirectImageUrl('');
-    addNotification('success', isAr ? 'تمت إضافة الصورة من الرابط المباشر بنجاح!' : 'Image added successfully!');
-  };
 
   // Kids smart outline & color palette states
   const [outlineDataUrl, setOutlineDataUrl] = useState<string | null>(null);
@@ -141,94 +151,6 @@ export default function SimpleWorkspaceView() {
   
   // Current active page's custom kid colors (default to standard crayon colors)
   const [colorsUsed, setColorsUsed] = useState<string[]>(['#e11d48', '#2563eb', '#16a34a', '#ca8a04', '#ea580c']);
-
-  // 12 High-Quality children coloring template presets (Curated Children-friendly outlines)
-  const CURATED_GALLERY = [
-    {
-      nameAr: 'أسد لطيف',
-      nameEn: 'Cute Lion',
-      keywords: ['أسد', 'حيوان', 'lion', 'animal', 'بر', 'وحش'],
-      url: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Minimalist clean black-and-white outline vector drawing of a cute friendly lion, coloring page style'
-    },
-    {
-      nameAr: 'أرنب دافئ',
-      nameEn: 'Cute Rabbit',
-      keywords: ['أرنب', 'حيوان', 'rabbit', 'animal', 'فرو'],
-      url: 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Simple outline drawing of a cute sweet rabbit sitting, children coloring page'
-    },
-    {
-      nameAr: 'رائد فضاء صغير',
-      nameEn: 'Little Astronaut',
-      keywords: ['رائد', 'فضاء', 'astronaut', 'space', 'قمر', 'نجوم'],
-      url: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Simple outline drawing of a cute little astronaut on the moon, coloring page'
-    },
-    {
-      nameAr: 'صاروخ فضائي',
-      nameEn: 'Space Rocket',
-      keywords: ['صاروخ', 'فضاء', 'rocket', 'space', 'طيران'],
-      url: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Cartoon space rocket flying in the sky, thick black borders, coloring sheet'
-    },
-    {
-      nameAr: 'ديناصور وديع',
-      nameEn: 'Friendly Dino',
-      keywords: ['ديناصور', 'حيوان', 'dino', 'dinosaur', 'تنين'],
-      url: 'https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Cute cartoon baby dinosaur playing, clean outline sketch, coloring page'
-    },
-    {
-      nameAr: 'منزل دافئ',
-      nameEn: 'Cozy House',
-      keywords: ['منزل', 'بيت', 'house', 'home', 'حديقة'],
-      url: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Simple sweet cartoon house with a garden, clean high contrast black lines, coloring book'
-    },
-    {
-      nameAr: 'سيارة كرتونية',
-      nameEn: 'Cartoon Car',
-      keywords: ['سيارة', 'مركبة', 'car', 'vehicle', 'عجلات'],
-      url: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Cute simple cartoon car driving, coloring template, thick outlines'
-    },
-    {
-      nameAr: 'طائرة أطفال',
-      nameEn: 'Cartoon Airplane',
-      keywords: ['طائرة', 'جو', 'airplane', 'plane', 'طيران'],
-      url: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Simple outlines drawing of a toy airplane in the sky, coloring guide'
-    },
-    {
-      nameAr: 'قطة هادئة',
-      nameEn: 'Sweet Cat',
-      keywords: ['قطة', 'حيوان', 'cat', 'animal', 'هرة'],
-      url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Sweet outline drawing of a sleeping kitten, coloring page style'
-    },
-    {
-      nameAr: 'فيل ذكي',
-      nameEn: 'Friendly Elephant',
-      keywords: ['فيل', 'حيوان', 'elephant', 'animal', 'غابة'],
-      url: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Cartoon baby elephant with large ears, coloring page outlines'
-    },
-    {
-      nameAr: 'زرافة طويلة',
-      nameEn: 'Tall Giraffe',
-      keywords: ['زرافة', 'حيوان', 'giraffe', 'animal', 'طويل'],
-      url: 'https://images.unsplash.com/photo-1547721064-da6cfb341d50?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Cute cartoon giraffe vector line art drawing, children coloring sheet'
-    },
-    {
-      nameAr: 'وردة جميلة',
-      nameEn: 'Pretty Flower',
-      keywords: ['وردة', 'زهرة', 'نبات', 'flower', 'plant', 'جميل'],
-      url: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=400',
-      prompt: 'Simple sweet cartoon sunflower drawing, bold contrast outlines, coloring page'
-    }
-  ];
 
   // Synchronize Book-level metadata when the active book changes
   useEffect(() => {
@@ -318,14 +240,22 @@ export default function SimpleWorkspaceView() {
   // Window mouse listener for interactive canvas image dragging & freeform stretching
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDraggingImage) {
+      if (!activePage) return;
+
+      if (isDraggingImage && activeDragImgId) {
         const dx = e.clientX - dragStartPos.x;
         const dy = e.clientY - dragStartPos.y;
         const newX = dragStartOffset.x + dx;
         const newY = dragStartOffset.y + dy;
+        
+        const currentImages = getPageImages(activePage);
+        const updated = currentImages.map(img => 
+          img.id === activeDragImgId ? { ...img, offsetX: newX, offsetY: newY } : img
+        );
+        updatePage(activePage.id, { pageImages: updated });
         setImageOffsetX(newX);
         setImageOffsetY(newY);
-      } else if (isResizingImage) {
+      } else if (isResizingImage && activeResizeImgId) {
         const dx = e.clientX - resizeStartPos.x;
         const dy = e.clientY - resizeStartPos.y;
 
@@ -334,37 +264,46 @@ export default function SimpleWorkspaceView() {
         let newScale = resizeStartScale;
 
         if (stretchDirection === 'e') {
-          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
+          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX + dx));
         } else if (stretchDirection === 'w') {
-          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX - dx));
+          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX - dx));
         } else if (stretchDirection === 's') {
-          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
+          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY + dy));
         } else if (stretchDirection === 'n') {
-          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY - dy));
+          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY - dy));
         } else if (stretchDirection === 'se') {
-          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
-          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
-          newScale = Math.max(20, Math.min(300, resizeStartScale + Math.round((dx + dy) / 2)));
+          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX + dx));
+          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY + dy));
+          newScale = Math.max(10, Math.min(300, resizeStartScale + Math.round((dx + dy) / 2)));
         } else if (stretchDirection === 'sw') {
-          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX - dx));
-          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
-          newScale = Math.max(20, Math.min(300, resizeStartScale + Math.round((-dx + dy) / 2)));
+          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX - dx));
+          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY + dy));
+          newScale = Math.max(10, Math.min(300, resizeStartScale + Math.round((-dx + dy) / 2)));
         } else if (stretchDirection === 'ne') {
-          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
-          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY - dy));
-          newScale = Math.max(20, Math.min(300, resizeStartScale + Math.round((dx - dy) / 2)));
+          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX + dx));
+          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY - dy));
+          newScale = Math.max(10, Math.min(300, resizeStartScale + Math.round((dx - dy) / 2)));
         } else if (stretchDirection === 'nw') {
-          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX - dx));
-          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY - dy));
-          newScale = Math.max(20, Math.min(300, resizeStartScale + Math.round((-dx - dy) / 2)));
+          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX - dx));
+          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY - dy));
+          newScale = Math.max(10, Math.min(300, resizeStartScale + Math.round((-dx - dy) / 2)));
         } else {
-          // both / default uniform corner
           const distChange = Math.round((dx + dy) / 2);
-          newScale = Math.max(20, Math.min(300, resizeStartScale + distChange));
-          newScaleX = Math.max(20, Math.min(300, resizeStartScaleX + dx));
-          newScaleY = Math.max(20, Math.min(300, resizeStartScaleY + dy));
+          newScale = Math.max(10, Math.min(300, resizeStartScale + distChange));
+          newScaleX = Math.max(10, Math.min(300, resizeStartScaleX + dx));
+          newScaleY = Math.max(10, Math.min(300, resizeStartScaleY + dy));
         }
 
+        const currentImages = getPageImages(activePage);
+        const updated = currentImages.map(img => 
+          img.id === activeResizeImgId ? { 
+            ...img, 
+            scale: newScale, 
+            scaleX: newScaleX, 
+            scaleY: newScaleY 
+          } : img
+        );
+        updatePage(activePage.id, { pageImages: updated });
         setImageScale(newScale);
         setImageScaleX(newScaleX);
         setImageScaleY(newScaleY);
@@ -374,11 +313,11 @@ export default function SimpleWorkspaceView() {
     const handleMouseUp = () => {
       if (isDraggingImage) {
         setIsDraggingImage(false);
-        updatePageParam({ imageOffsetX, imageOffsetY });
+        setActiveDragImgId(null);
       }
       if (isResizingImage) {
         setIsResizingImage(false);
-        updatePageParam({ imageScale, imageScaleX, imageScaleY });
+        setActiveResizeImgId(null);
       }
     };
 
@@ -391,32 +330,32 @@ export default function SimpleWorkspaceView() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDraggingImage, isResizingImage, dragStartPos, dragStartOffset, resizeStartPos, resizeStartScale, resizeStartScaleX, resizeStartScaleY, stretchDirection, imageOffsetX, imageOffsetY, imageScale, imageScaleX, imageScaleY]);
+  }, [isDraggingImage, isResizingImage, activeDragImgId, activeResizeImgId, dragStartPos, dragStartOffset, resizeStartPos, resizeStartScale, resizeStartScaleX, resizeStartScaleY, stretchDirection, activePage]);
 
-  const handleImageMouseDown = (e: React.MouseEvent) => {
+  const handleImageMouseDown = (e: React.MouseEvent, imgId?: string) => {
     e.preventDefault();
+    if (imgId) {
+      setSelectedImageId(imgId);
+      setActiveDragImgId(imgId);
+    }
     setIsDraggingImage(true);
     setDragStartPos({ x: e.clientX, y: e.clientY });
     setDragStartOffset({ x: imageOffsetX, y: imageOffsetY });
   };
 
-  const handleResizeStart = (e: React.MouseEvent, dir: 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se' | 'both' = 'both') => {
+  const handleResizeStart = (e: React.MouseEvent, dir: 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se' | 'both' = 'both', imgId?: string) => {
     e.stopPropagation();
     e.preventDefault();
+    if (imgId) {
+      setSelectedImageId(imgId);
+      setActiveResizeImgId(imgId);
+    }
     setIsResizingImage(true);
     setStretchDirection(dir);
     setResizeStartPos({ x: e.clientX, y: e.clientY });
     setResizeStartScale(imageScale);
     setResizeStartScaleX(imageScaleX);
     setResizeStartScaleY(imageScaleY);
-  };
-
-  const handleImageWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 5 : -5;
-    const newScale = Math.max(20, Math.min(300, imageScale + delta));
-    setImageScale(newScale);
-    updatePageParam({ imageScale: newScale });
   };
 
   const handleAutoFitImage = () => {
@@ -426,6 +365,52 @@ export default function SimpleWorkspaceView() {
     setImageOffsetX(0);
     setImageOffsetY(0);
     updatePageParam({ imageScale: 100, imageScaleX: 100, imageScaleY: 100, imageOffsetX: 0, imageOffsetY: 0 });
+  };
+
+  const handleAddOrUpdateImage = (newImageDataUrl: string, targetImgId?: string | null) => {
+    if (!activePage) return;
+    const currentImages = getPageImages(activePage);
+
+    if (targetImgId && currentImages.some(img => img.id === targetImgId)) {
+      const updated = currentImages.map(img => 
+        img.id === targetImgId ? { ...img, url: newImageDataUrl } : img
+      );
+      updatePage(activePage.id, {
+        pageImages: updated,
+        illustrationUrl: updated[0]?.url || newImageDataUrl,
+      });
+    } else {
+      const newImgItem: PageImageItem = {
+        id: 'img_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        url: newImageDataUrl,
+        scale: 100,
+        scaleX: 100,
+        scaleY: 100,
+        offsetX: 0,
+        offsetY: 0,
+      };
+      const updated = [...currentImages, newImgItem];
+      updatePage(activePage.id, {
+        pageImages: updated,
+        illustrationUrl: updated[0]?.url || newImageDataUrl,
+        layoutType: 'coloring',
+      });
+      setSelectedImageId(newImgItem.id);
+    }
+  };
+
+  const handleDeleteImage = (imgId: string) => {
+    if (!activePage) return;
+    const currentImages = getPageImages(activePage);
+    const updated = currentImages.filter(img => img.id !== imgId);
+    updatePage(activePage.id, {
+      pageImages: updated,
+      illustrationUrl: updated[0]?.url || '',
+    });
+    if (selectedImageId === imgId) {
+      setSelectedImageId(updated[0]?.id || null);
+    }
+    addNotification('info', isAr ? 'تم حذف الصورة من الصفحة' : 'Image deleted from page');
   };
 
   // Kids smart outline extractor & dynamic color palette analyzer effect
@@ -868,67 +853,6 @@ export default function SimpleWorkspaceView() {
     }
   };
 
-  // Dynamic Image Search Lens from Network & Local curated list
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const q = e.target.value;
-    setSearchQuery(q);
-    if (!q.trim()) {
-      setWebSearchResults([]);
-    }
-  };
-
-  const executeImageSearch = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    setIsSearchingWeb(true);
-    
-    // Simulate real web fetching to provide an engaging progress experience
-    setTimeout(() => {
-      const q = searchQuery.toLowerCase().trim();
-      
-      // Look up our matching curated gallery items
-      const curatedMatches = CURATED_GALLERY.filter(item => 
-        item.nameAr.includes(q) || 
-        item.nameEn.toLowerCase().includes(q) ||
-        item.keywords.some(k => k.includes(q))
-      );
-
-      // Generate dynamic high-quality Unsplash children-friendly lineart drawing queries
-      const webMatches = [
-        {
-          name: isAr ? `رسم تلوين: ${searchQuery} (1)` : `Coloring Art: ${searchQuery} (1)`,
-          url: `https://images.unsplash.com/featured/400x400/?coloring-book,outline,cartoon,${encodeURIComponent(q)}`,
-          prompt: `Kids black and white clean outlines vector coloring page of ${q}, white background`
-        },
-        {
-          name: isAr ? `رسم تلوين: ${searchQuery} (2)` : `Coloring Art: ${searchQuery} (2)`,
-          url: `https://images.unsplash.com/featured/400x400/?children,sketch,draw,${encodeURIComponent(q)}`,
-          prompt: `Minimalist childrens coloring sheet outline drawing of ${q}, bold contours`
-        },
-        {
-          name: isAr ? `رسم تلوين: ${searchQuery} (3)` : `Coloring Art: ${searchQuery} (3)`,
-          url: `https://images.unsplash.com/featured/400x400/?vector,line-art,cartoon,${encodeURIComponent(q)}`,
-          prompt: `Simple child coloring book graphic of ${q}, crisp outline sketch`
-        }
-      ];
-
-      // Merge local matching and generated web results
-      const merged = [
-        ...curatedMatches.map(c => ({
-          name: isAr ? c.nameAr : c.nameEn,
-          url: c.url,
-          prompt: c.prompt
-        })),
-        ...webMatches
-      ];
-
-      setWebSearchResults(merged);
-      setIsSearchingWeb(false);
-      addNotification('success', isAr ? `تم جلب ${merged.length} نتائج لـ "${searchQuery}" من الشبكة!` : `Fetched ${merged.length} outline sheets for "${searchQuery}" from the web!`);
-    }, 650);
-  };
-
   const handleExportAndPrint = async () => {
     addNotification('info', isAr ? 'جاري إعداد وتحضير ملفات الطباعة عالية الدقة...' : 'Preparing high-resolution print files...');
     await synthesizePrintPackage();
@@ -1211,60 +1135,31 @@ export default function SimpleWorkspaceView() {
 
                   {/* Dual Image Illustration Concept / Full Color Image with Direct Canvas Mouse Drag & Resize */}
                   <div className="flex-1 my-1 bg-slate-50/50 rounded-xl border border-slate-200/80 overflow-hidden relative flex flex-col items-center justify-center">
-                    {activePage.illustrationUrl ? (
+                    {/* Render Page Images */}
+                    {getPageImages(activePage).length > 0 ? (
                       <div 
-                        className="w-full h-full relative overflow-hidden flex items-center justify-center group select-none"
+                        className="w-full h-full relative overflow-hidden flex flex-wrap items-center justify-center gap-4 group select-none p-4"
                         onMouseEnter={() => setIsImageHovered(true)}
                         onMouseLeave={() => setIsImageHovered(false)}
-                        onWheel={handleImageWheel}
                       >
-                        {/* On-canvas Overlay Controls */}
+                        {/* On-canvas Quick Control Bar */}
                         <div className={`absolute top-2 left-1/2 -translate-x-1/2 z-30 transition-all duration-200 flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md text-white px-3 py-1 rounded-full shadow-xl border border-white/20 text-xs ${isImageHovered || isDraggingImage || isResizingImage ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
                           <span className="text-[10px] font-bold text-purple-300 flex items-center gap-1">
                             <Move className="w-3 h-3 animate-pulse" />
-                            {isAr ? 'اسحب للتحريك' : 'Drag'}
+                            {isAr ? 'امسك واسحب أي صورة للتحريك والمط' : 'Drag & stretch any image'}
                           </span>
                           <span className="w-px h-3 bg-white/20" />
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setCropImageSrc(activePage.illustrationUrl || '');
-                              setIsCropModalOpen(true);
+                              if (fileInputRef.current) fileInputRef.current.click();
                             }}
-                            className="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-full text-[10px] font-black transition flex items-center gap-1 shadow-xs"
-                            title={isAr ? 'قص وتعديل وإزالة الخلفية' : 'Crop & Clean BG'}
+                            className="px-2 py-0.5 bg-brand-600 hover:bg-brand-500 text-white rounded-full text-[10px] font-bold transition flex items-center gap-1 shadow-xs"
+                            title={isAr ? 'إضافة صورة جديدة للصفحة' : 'Add another image'}
                           >
-                            <Scissors className="w-3 h-3" />
-                            {isAr ? '✂️ قص / إزالة الخلفية' : 'Crop / PNG'}
-                          </button>
-                          <span className="w-px h-3 bg-white/20" />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const newScale = Math.max(20, imageScale - 10);
-                              setImageScale(newScale);
-                              updatePageParam({ imageScale: newScale });
-                            }}
-                            className="p-1 hover:bg-white/20 rounded-full transition"
-                            title={isAr ? 'تصغير' : 'Zoom Out'}
-                          >
-                            <ZoomOut className="w-3.5 h-3.5 text-white" />
-                          </button>
-                          <span className="font-mono text-[11px] font-extrabold text-amber-300 px-1">{imageScale}%</span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const newScale = Math.min(300, imageScale + 10);
-                              setImageScale(newScale);
-                              updatePageParam({ imageScale: newScale });
-                            }}
-                            className="p-1 hover:bg-white/20 rounded-full transition"
-                            title={isAr ? 'تكبير' : 'Zoom In'}
-                          >
-                            <ZoomIn className="w-3.5 h-3.5 text-white" />
+                            <Plus className="w-3 h-3" />
+                            {isAr ? 'إضافة صورة' : 'Add Image'}
                           </button>
                           <span className="w-px h-3 bg-white/20" />
                           <button
@@ -1274,121 +1169,146 @@ export default function SimpleWorkspaceView() {
                               handleAutoFitImage();
                             }}
                             className="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white rounded-full text-[10px] font-bold transition flex items-center gap-1 shadow-xs"
-                            title={isAr ? 'ضبط تلقائي لملء الصفحة' : 'Auto Fit'}
+                            title={isAr ? 'إعادة ضبط الأحجام' : 'Reset Fit'}
                           >
                             <Maximize2 className="w-3 h-3" />
-                            {isAr ? 'ضبط تلقائي' : 'Auto Fit'}
+                            {isAr ? 'إعادة ضبط' : 'Reset'}
                           </button>
                         </div>
 
-                        {/* Draggable & Freeform Resizable Image Element */}
-                        <div 
-                          className={`relative max-w-full max-h-full flex items-center justify-center transition-shadow ${isImageHovered || isDraggingImage || isResizingImage ? 'ring-2 ring-purple-500/80 ring-offset-2 rounded-lg' : ''}`}
-                          style={{
-                            transform: `scale(${imageScale / 100}) scale(${(imageScaleX || 100) / 100}, ${(imageScaleY || 100) / 100}) translate(${imageOffsetX}px, ${imageOffsetY}px)`,
-                            cursor: isDraggingImage ? 'grabbing' : 'grab',
-                            touchAction: 'none'
-                          }}
-                          onMouseDown={handleImageMouseDown}
-                        >
-                          {isFullColorMode ? (
-                            <img 
-                              src={activePage.illustrationUrl} 
-                              alt={activePage.title || 'Full color image'} 
-                              referrerPolicy="no-referrer"
-                              className="max-w-full max-h-[580px] object-contain pointer-events-none select-none rounded"
-                            />
-                          ) : (
-                            <>
-                              {isProcessingOutline && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 z-10">
-                                  <RefreshCw className="w-6 h-6 text-brand-500 animate-spin mb-1" />
-                                  <span className="text-[9px] text-slate-400 font-bold">{isAr ? 'جاري استخلاص خطوط الرسم...' : 'Extracting outlines...'}</span>
-                                </div>
+                        {/* Draggable & Freeform Resizable Images List */}
+                        {getPageImages(activePage).map((imgItem) => {
+                          const isSelected = selectedImageId === imgItem.id || getPageImages(activePage).length === 1;
+                          const imgScale = imgItem.scale || 100;
+                          const imgScaleX = imgItem.scaleX || 100;
+                          const imgScaleY = imgItem.scaleY || 100;
+                          const imgOffsetX = imgItem.offsetX || 0;
+                          const imgOffsetY = imgItem.offsetY || 0;
+
+                          return (
+                            <div 
+                              key={imgItem.id}
+                              className={`relative max-w-full max-h-full flex items-center justify-center transition-shadow m-2 ${isSelected ? 'ring-2 ring-purple-500/80 ring-offset-2 rounded-lg' : 'hover:ring-1 hover:ring-purple-300 rounded-lg'}`}
+                              style={{
+                                transform: `scale(${imgScale / 100}) scale(${imgScaleX / 100}, ${imgScaleY / 100}) translate(${imgOffsetX}px, ${imgOffsetY}px)`,
+                                cursor: isDraggingImage && activeDragImgId === imgItem.id ? 'grabbing' : 'grab',
+                                touchAction: 'none'
+                              }}
+                              onMouseDown={(e) => handleImageMouseDown(e, imgItem.id)}
+                            >
+                              {/* Delete (X) button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteImage(imgItem.id);
+                                }}
+                                className="absolute -top-3 -right-3 w-6 h-6 bg-rose-600 hover:bg-rose-700 text-white rounded-full flex items-center justify-center shadow-lg font-bold text-xs z-50 transition-transform hover:scale-110"
+                                title={isAr ? 'حذف هذه الصورة (X)' : 'Delete image'}
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Crop & Remove BG button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingImageId(imgItem.id);
+                                  setCropImageSrc(imgItem.url);
+                                  setIsCropModalOpen(true);
+                                }}
+                                className="absolute -top-3 -left-3 px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-full flex items-center justify-center gap-1 shadow-lg font-bold text-[10px] z-50 transition-transform hover:scale-110"
+                                title={isAr ? 'قص الصورة وتفريغ خلفيتها' : 'Crop & Clean BG'}
+                              >
+                                <Scissors className="w-3 h-3" />
+                                {isAr ? 'قص/تفريغ' : 'Crop'}
+                              </button>
+
+                              {isFullColorMode ? (
+                                <img 
+                                  src={imgItem.url} 
+                                  alt={activePage.title || 'Page illustration'} 
+                                  referrerPolicy="no-referrer"
+                                  className="max-w-full max-h-[580px] object-contain pointer-events-none select-none rounded"
+                                />
+                              ) : (
+                                <>
+                                  {isProcessingOutline && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 z-10">
+                                      <RefreshCw className="w-6 h-6 text-brand-500 animate-spin mb-1" />
+                                      <span className="text-[9px] text-slate-400 font-bold">{isAr ? 'جاري استخلاص خطوط الرسم...' : 'Extracting outlines...'}</span>
+                                    </div>
+                                  )}
+
+                                  <img 
+                                    src={outlineDataUrl && imgItem.id === getPageImages(activePage)[0]?.id ? outlineDataUrl : imgItem.url} 
+                                    alt="Coloring outline" 
+                                    referrerPolicy="no-referrer"
+                                    className="max-w-full max-h-[580px] object-contain mix-blend-multiply pointer-events-none select-none"
+                                    style={(!outlineDataUrl || imgItem.id !== getPageImages(activePage)[0]?.id) ? { filter: 'grayscale(100%) contrast(1000%) brightness(130%)' } : {}}
+                                  />
+                                </>
                               )}
 
-                              <img 
-                                src={outlineDataUrl || activePage.illustrationUrl} 
-                                alt="Coloring outline" 
-                                referrerPolicy="no-referrer"
-                                className="max-w-full max-h-[580px] object-contain mix-blend-multiply pointer-events-none select-none"
-                                style={!outlineDataUrl ? { filter: 'grayscale(100%) contrast(1000%) brightness(130%)' } : {}}
-                              />
+                              {/* 8 Freeform Handles (Corners + Sides) */}
+                              {isSelected && (
+                                <>
+                                  {/* Corners */}
+                                  <div 
+                                    onMouseDown={(e) => handleResizeStart(e, 'nw', imgItem.id)}
+                                    className="absolute -top-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
+                                    title={isAr ? 'تغيير الحجم (أعلى يسار)' : 'Resize Corner (NW)'}
+                                  />
+                                  <div 
+                                    onMouseDown={(e) => handleResizeStart(e, 'ne', imgItem.id)}
+                                    className="absolute -top-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
+                                    title={isAr ? 'تغيير الحجم (أعلى يمين)' : 'Resize Corner (NE)'}
+                                  />
+                                  <div 
+                                    onMouseDown={(e) => handleResizeStart(e, 'sw', imgItem.id)}
+                                    className="absolute -bottom-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
+                                    title={isAr ? 'تغيير الحجم (أسفل يسار)' : 'Resize Corner (SW)'}
+                                  />
+                                  <div 
+                                    onMouseDown={(e) => handleResizeStart(e, 'se', imgItem.id)}
+                                    className="absolute -bottom-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
+                                    title={isAr ? 'تغيير الحجم (أسفل يمين)' : 'Resize Corner (SE)'}
+                                  />
 
-                              <div className="absolute top-2 right-2 w-14 h-18 bg-white border-2 border-brand-500 rounded-lg shadow-lg overflow-hidden flex flex-col items-center z-20 animate-fade-in pointer-events-none">
-                                <div className="bg-brand-500 text-white text-[7px] font-sans font-bold w-full text-center py-0.5 leading-none select-none">
-                                  {isAr ? 'دليل الألوان' : 'Color Guide'}
-                                </div>
-                                <img 
-                                  src={activePage.illustrationUrl} 
-                                  alt="Original colored reference" 
-                                  referrerPolicy="no-referrer"
-                                  className="w-full h-12 object-cover" 
-                                />
-                              </div>
-                            </>
-                          )}
-
-                          {/* 8 Freeform Stretch & Resize Handles (4 Corners + 4 Edge Sides) */}
-                          {(isImageHovered || isDraggingImage || isResizingImage) && (
-                            <>
-                              {/* Corners */}
-                              <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'nw')}
-                                className="absolute -top-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة (أعلى يسار)' : 'Resize Corner (NW)'}
-                              />
-                              <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'ne')}
-                                className="absolute -top-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة (أعلى يمين)' : 'Resize Corner (NE)'}
-                              />
-                              <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'sw')}
-                                className="absolute -bottom-2 -left-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nesw-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة (أسفل يسار)' : 'Resize Corner (SW)'}
-                              />
-                              <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'se')}
-                                className="absolute -bottom-2 -right-2 w-4 h-4 bg-purple-600 border-2 border-white rounded-full shadow-lg cursor-nwse-resize z-40 hover:scale-125 transition-transform"
-                                title={isAr ? 'اضغط واسحب لتغيير الحجم والنسبة (أسفل يمين)' : 'Resize Corner (SE)'}
-                              />
-
-                              {/* Freeform Side Stretch Handles */}
-                              {/* Top Side (Stretch Vertical N) */}
-                              <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'n')}
-                                className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-10 h-3 bg-amber-500 border border-white rounded-full shadow-lg cursor-ns-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
-                                title={isAr ? 'مط/كمش رأسي من الأعلى (Vertical N)' : 'Vertical Stretch (N)'}
-                              />
-                              {/* Bottom Side (Stretch Vertical S) */}
-                              <div 
-                                onMouseDown={(e) => handleResizeStart(e, 's')}
-                                className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-10 h-3 bg-amber-500 border border-white rounded-full shadow-lg cursor-ns-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
-                                title={isAr ? 'مط/كمش رأسي من الأسفل (Vertical S)' : 'Vertical Stretch (S)'}
-                              />
-                              {/* Left Side (Stretch Horizontal W) */}
-                              <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'w')}
-                                className="absolute top-1/2 -left-2.5 -translate-y-1/2 w-3 h-10 bg-amber-500 border border-white rounded-full shadow-lg cursor-ew-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
-                                title={isAr ? 'مط/كمش أفقي من اليسار (Horizontal W)' : 'Horizontal Stretch (W)'}
-                              />
-                              {/* Right Side (Stretch Horizontal E) */}
-                              <div 
-                                onMouseDown={(e) => handleResizeStart(e, 'e')}
-                                className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-3 h-10 bg-amber-500 border border-white rounded-full shadow-lg cursor-ew-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
-                                title={isAr ? 'مط/كمش أفقي من اليمين (Horizontal E)' : 'Horizontal Stretch (E)'}
-                              />
-                            </>
-                          )}
-                        </div>
+                                  {/* Freeform Side Stretch Handles */}
+                                  <div 
+                                    onMouseDown={(e) => handleResizeStart(e, 'n', imgItem.id)}
+                                    className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-10 h-3 bg-amber-500 border border-white rounded-full shadow-lg cursor-ns-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
+                                    title={isAr ? 'مط/كمش رأسي من الأعلى' : 'Vertical Stretch (N)'}
+                                  />
+                                  <div 
+                                    onMouseDown={(e) => handleResizeStart(e, 's', imgItem.id)}
+                                    className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-10 h-3 bg-amber-500 border border-white rounded-full shadow-lg cursor-ns-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
+                                    title={isAr ? 'مط/كمش رأسي من الأسفل' : 'Vertical Stretch (S)'}
+                                  />
+                                  <div 
+                                    onMouseDown={(e) => handleResizeStart(e, 'w', imgItem.id)}
+                                    className="absolute top-1/2 -left-2.5 -translate-y-1/2 w-3 h-10 bg-amber-500 border border-white rounded-full shadow-lg cursor-ew-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
+                                    title={isAr ? 'مط/كمش أفقي من اليسار' : 'Horizontal Stretch (W)'}
+                                  />
+                                  <div 
+                                    onMouseDown={(e) => handleResizeStart(e, 'e', imgItem.id)}
+                                    className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-3 h-10 bg-amber-500 border border-white rounded-full shadow-lg cursor-ew-resize z-40 hover:scale-110 transition-transform flex items-center justify-center"
+                                    title={isAr ? 'مط/كمش أفقي من اليمين' : 'Horizontal Stretch (E)'}
+                                  />
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center p-4 text-center space-y-2">
                         <Palette className="w-10 h-10 text-slate-300 mb-1 animate-pulse" />
                         <span className="text-xs text-slate-600 font-bold">{isAr ? 'الصفحة فارغة حالياً' : 'Empty Page'}</span>
                         <p className="text-[10px] text-slate-400 leading-normal max-w-[200px]">
-                          {isAr ? 'اختر قالباً، أو ابحث في الويب، أو ولد رسمة بالذكاء الاصطناعي، أو ارفع صورة' : 'Select a preset, search web, generate via AI, or upload an image.'}
+                          {isAr ? 'اختر صورة من الكمبيوتر أو ولد رسمة بالذكاء الاصطناعي' : 'Upload an image from your computer or generate via AI.'}
                         </p>
                       </div>
                     )}
@@ -1658,115 +1578,68 @@ export default function SimpleWorkspaceView() {
                         </div>
                       </div>
 
-                      {/* Searchable Web Gallery Section (عدسة بحث مطورة + بنترست) */}
-                      <div className="space-y-3 pt-1 border-t border-slate-100">
-                        <span className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mt-2">
-                          {isAr ? 'الخيار الثالث: ابحث واجلب أي صورة من الويب والشبكة:' : 'Option 3: Search and bring any illustration from the web:'}
-                        </span>
-                        
-                        {/* Search Input Box with Lens icon */}
-                        <form onSubmit={executeImageSearch} className="flex gap-1.5 relative">
-                          <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={handleSearchChange}
-                            placeholder={isAr ? 'اكتب كلمة للبحث (مثال: أرنب، سيارة، فضاء)...' : 'Search coloring (e.g. rabbit, car, space)...'}
-                            className="flex-1 pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden text-right"
-                          />
-                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                          <button
-                            type="submit"
-                            disabled={isSearchingWeb || !searchQuery.trim()}
-                            className="px-3 py-2 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-lg transition flex items-center gap-1"
-                          >
-                            {isSearchingWeb ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
-                            {isAr ? 'بحث' : 'Search'}
-                          </button>
-                        </form>
-
-                        {/* Pinterest Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const q = searchQuery.trim() || 'رسومات تلوين أطفال';
-                            window.open(`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(q + ' coloring page')}`, '_blank');
-                          }}
-                          className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs"
-                        >
-                          <span>📌 {isAr ? `فتح Pinterest وإكمال البحث عن "${searchQuery || 'تلوين'}"` : 'Open & Search on Pinterest'}</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* Direct URL paste from Pinterest */}
-                        <div className="flex gap-1.5 pt-1">
-                          <input
-                            type="url"
-                            value={directImageUrl}
-                            onChange={(e) => setDirectImageUrl(e.target.value)}
-                            placeholder={isAr ? 'أو الصق رابط صورة مباشرة من بنترست/الويب...' : 'Or paste direct image URL from Pinterest...'}
-                            className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-[11px] bg-slate-50/50 text-right"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleApplyDirectUrl}
-                            disabled={!directImageUrl.trim()}
-                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-200 text-white text-xs font-bold rounded-lg transition"
-                          >
-                            {isAr ? 'إضافة' : 'Add'}
-                          </button>
+                      {/* Active Images list on current page */}
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <div className="flex justify-between items-center">
+                          <span className="block text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold">
+                            {isAr ? 'الصور الموجودة في هذه الصفحة:' : 'Images on this page:'}
+                          </span>
+                          <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                            {getPageImages(activePage).length}
+                          </span>
                         </div>
 
-                        {/* Search results list / Curated defaults */}
-                        <div className="max-h-40 overflow-y-auto pt-1.5 pr-0.5 space-y-1">
-                          {webSearchResults.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-2">
-                              {webSearchResults.map((tmpl, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleApplyTemplate(tmpl.url, tmpl.prompt)}
-                                  className="border border-slate-200 hover:border-brand-500 p-1 rounded-xl overflow-hidden bg-slate-50 relative group transition"
-                                  title={tmpl.name}
+                        {getPageImages(activePage).length > 0 ? (
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-0.5">
+                            {getPageImages(activePage).map((img, idx) => (
+                              <div 
+                                key={img.id}
+                                className={`flex items-center justify-between p-2 rounded-xl border transition ${selectedImageId === img.id ? 'border-brand-500 bg-brand-50/20' : 'border-slate-200 bg-slate-50'}`}
+                              >
+                                <div 
+                                  className="flex items-center gap-2 cursor-pointer flex-1"
+                                  onClick={() => setSelectedImageId(img.id)}
                                 >
                                   <img 
-                                    src={tmpl.url} 
-                                    alt={tmpl.name} 
-                                    referrerPolicy="no-referrer"
-                                    className="w-full h-11 object-cover rounded-lg group-hover:scale-105 transition" 
+                                    src={img.url} 
+                                    alt={`Image ${idx + 1}`} 
+                                    className="w-9 h-9 object-cover rounded-lg border border-slate-200"
                                   />
-                                  <span className="absolute bottom-0 inset-x-0 bg-slate-900/70 text-white text-[8px] text-center py-0.5 truncate font-sans">
-                                    {tmpl.name}
+                                  <span className="text-xs font-bold text-slate-700">
+                                    {isAr ? `صورة رقم ${idx + 1}` : `Image #${idx + 1}`}
                                   </span>
-                                </button>
-                              ))}
-                            </div>
-                          ) : searchQuery.trim() ? (
-                            <p className="text-[10px] text-slate-400 text-center py-4">
-                              {isAr ? 'اضغط على زر "بحث" للجلب أو أعد فتح Pinterest بالزر الأحمر...' : 'Click Search or use the Pinterest button above...'}
-                            </p>
-                          ) : (
-                            // Default gallery list (6 templates)
-                            <div className="grid grid-cols-3 gap-2">
-                              {CURATED_GALLERY.slice(0, 6).map((tmpl, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleApplyTemplate(tmpl.url, tmpl.prompt)}
-                                  className="border border-slate-200 hover:border-brand-500 p-1 rounded-xl overflow-hidden bg-slate-50 relative group transition"
-                                  title={isAr ? tmpl.nameAr : tmpl.nameEn}
-                                >
-                                  <img 
-                                    src={tmpl.url} 
-                                    alt={isAr ? tmpl.nameAr : tmpl.nameEn} 
-                                    referrerPolicy="no-referrer"
-                                    className="w-full h-11 object-cover rounded-lg group-hover:scale-105 transition" 
-                                  />
-                                  <span className="absolute bottom-0 inset-x-0 bg-slate-900/60 text-white text-[8px] text-center py-0.5 truncate font-sans">
-                                    {isAr ? tmpl.nameAr : tmpl.nameEn}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingImageId(img.id);
+                                      setCropImageSrc(img.url);
+                                      setIsCropModalOpen(true);
+                                    }}
+                                    className="p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg transition"
+                                    title={isAr ? 'قص وتفريغ الخلفية' : 'Crop & Clean BG'}
+                                  >
+                                    <Scissors className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteImage(img.id)}
+                                    className="p-1.5 text-rose-600 hover:bg-rose-100 rounded-lg transition"
+                                    title={isAr ? 'حذف الصورة (X)' : 'Delete image'}
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-slate-400 text-center py-2">
+                            {isAr ? 'لا توجد صور في هذه الصفحة حالياً' : 'No images on this page yet.'}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -2848,15 +2721,17 @@ export default function SimpleWorkspaceView() {
 
       <ImageCropAndRemoveBgModal
         isOpen={isCropModalOpen}
-        onClose={() => setIsCropModalOpen(false)}
+        onClose={() => {
+          setIsCropModalOpen(false);
+          setEditingImageId(null);
+        }}
         imageUrl={cropImageSrc || activePage?.illustrationUrl || ''}
         isAr={isAr}
         onApply={(newImageDataUrl) => {
           if (activePage) {
-            updatePage(activePage.id, {
-              illustrationUrl: newImageDataUrl,
-            });
-            addNotification('success', isAr ? 'تم حفظ وتحديث الصورة وتفريغ خلفيتها بنجاح!' : 'Image cropped & background removed successfully!');
+            handleAddOrUpdateImage(newImageDataUrl, editingImageId);
+            setEditingImageId(null);
+            addNotification('success', isAr ? 'تم حفظ وتحديث الصورة وتفريغ خلفيتها بنجاح!' : 'Image cropped & applied successfully!');
           }
         }}
       />

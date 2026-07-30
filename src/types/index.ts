@@ -114,6 +114,16 @@ export interface PageActivity {
   contentData?: any; // Questions, tracing vectors, matching pairs
 }
 
+export interface PageImageItem {
+  id: string;
+  url: string;
+  scale?: number;
+  scaleX?: number;
+  scaleY?: number;
+  offsetX?: number;
+  offsetY?: number;
+}
+
 export interface Page {
   id: string;
   pageNumber: number;
@@ -124,6 +134,7 @@ export interface Page {
   illustrationPrompt?: string;
   illustrationAssetId?: string;
   illustrationUrl?: string;
+  pageImages?: PageImageItem[];
   activity?: PageActivity;
   activityWorksheet?: ActivityWorksheetConfig;
   textPageTheme?: 'clean' | 'warm-cream' | 'pastel-blue' | 'framed' | 'storybook';
