@@ -1266,27 +1266,7 @@ export default function SimpleWorkspaceView() {
                           </button>
                         </div>
 
-                        {/* Floating Colored Reference Preview Frame for Coloring Mode (Compact 2.2cm x 2.4cm, object-contain, hover-expand) */}
-                        {!isFullColorMode && (getPageImages(activePage)[0]?.url || activePage.illustrationUrl) && (
-                          <div 
-                            className="absolute top-1.5 right-1.5 z-20 flex flex-col items-center bg-white/95 backdrop-blur-xs p-1 rounded-lg border-2 border-purple-500 shadow-md transition-all duration-200 hover:scale-150 origin-top-right select-none pointer-events-auto cursor-pointer group"
-                            style={{ width: '2.2cm', height: '2.4cm', maxWidth: '2.5cm', maxHeight: '2.8cm' }}
-                            title={isAr ? 'دليل التلوين الملون (مرر الفأرة للتكبير)' : 'Color Guide Reference (Hover to zoom)'}
-                          >
-                            <div className="w-full bg-purple-600 text-white text-[7px] font-bold text-center py-0.5 rounded-t leading-none tracking-tight flex items-center justify-center gap-0.5 shadow-2xs">
-                              <span>🎨</span>
-                              <span>{isAr ? 'دليل التلوين' : 'Color Guide'}</span>
-                            </div>
-                            <div className="w-full flex-1 flex items-center justify-center overflow-hidden p-0.5 bg-slate-50 rounded-b border-t border-purple-100">
-                              <img 
-                                src={getPageImages(activePage)[0]?.url || activePage.illustrationUrl} 
-                                alt="Original Color Guide" 
-                                referrerPolicy="no-referrer"
-                                className="w-full h-full object-contain rounded"
-                              />
-                            </div>
-                          </div>
-                        )}
+
 
                         {/* Draggable & Freeform Resizable Images List */}
                         {getPageImages(activePage).map((imgItem) => {
@@ -1533,25 +1513,58 @@ export default function SimpleWorkspaceView() {
                     )}
                   </div>
 
-                  {/* Optional Dash Alphabet Tracing Guides */}
-                  {activePage.activity && activePage.activity.type === 'tracing' && (
-                    <div className="p-3 bg-brand-50/20 border-2 border-dashed border-brand-300 rounded-xl text-center my-2 select-none">
-                      <span className="text-[10px] font-mono font-extrabold text-brand-600 block mb-1 uppercase tracking-wider">
-                        {isAr ? '✍️ مستشار تتبع خطوط الحروف (حجم كبير للتلوين والتتبع)' : '✍️ Large Practice Tracing Character'}
-                      </span>
-                      <div className="h-16 md:h-20 border-2 border-dashed border-slate-300 rounded-xl bg-white flex items-center justify-center gap-6 px-4">
-                        <span className="text-4xl md:text-5xl font-display font-black text-slate-400 tracking-[0.2em] line-through select-none">
-                          {activePage.activity.contentData?.character || 'أ'}
-                        </span>
-                        <span className="text-4xl md:text-5xl font-display font-black text-slate-300/60 tracking-[0.2em] line-through select-none">
-                          {activePage.activity.contentData?.character || 'أ'}
-                        </span>
-                        <span className="text-4xl md:text-5xl font-display font-black text-slate-300/30 tracking-[0.2em] line-through select-none">
-                          {activePage.activity.contentData?.character || 'أ'}
-                        </span>
-                      </div>
+                  {/* BOTTOM FEATURE BAR: Tracing Box + Color Guide Frame at Bottom-Left */}
+                  <div className="mt-2 pt-2 border-t border-slate-100/80 flex items-stretch justify-between gap-3 select-none" dir={isAr ? 'rtl' : 'ltr'}>
+                    {/* 1. Tracing Box (or Spacer if Tracing is Disabled) */}
+                    <div className="flex-1 min-w-0">
+                      {activePage.activity && activePage.activity.type === 'tracing' ? (
+                        <div className="p-2 bg-brand-50/20 border-2 border-dashed border-brand-300 rounded-xl text-center h-full flex flex-col justify-center">
+                          <span className="text-[10px] font-mono font-extrabold text-brand-600 block mb-1 uppercase tracking-wider">
+                            {isAr ? '✍️ مستشار تتبع خطوط الحروف (حجم كبير للتلوين والتتبع)' : '✍️ Large Practice Tracing Character'}
+                          </span>
+                          <div className="h-14 md:h-16 border-2 border-dashed border-slate-300 rounded-xl bg-white flex items-center justify-center gap-4 md:gap-6 px-2">
+                            <span className="text-3xl md:text-4xl font-display font-black text-slate-400 tracking-[0.2em] line-through select-none">
+                              {activePage.activity.contentData?.character || 'أ'}
+                            </span>
+                            <span className="text-3xl md:text-4xl font-display font-black text-slate-300/60 tracking-[0.2em] line-through select-none">
+                              {activePage.activity.contentData?.character || 'أ'}
+                            </span>
+                            <span className="text-3xl md:text-4xl font-display font-black text-slate-300/30 tracking-[0.2em] line-through select-none">
+                              {activePage.activity.contentData?.character || 'أ'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-2 bg-slate-50/40 border border-dashed border-slate-200/80 rounded-xl text-center flex items-center justify-center h-full min-h-[70px]">
+                          <span className="text-[10px] font-bold text-slate-400 font-sans">
+                            {isAr ? '✨ مساحة التلوين والأنشطة المكملة' : '✨ Coloring & Practice Area'}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {/* 2. Color Guide Reference Frame - Fixed at Bottom-Left (اسفل اليسار) */}
+                    {!isFullColorMode && (getPageImages(activePage)[0]?.url || activePage.illustrationUrl) && (
+                      <div 
+                        className="flex-none flex flex-col items-center bg-white p-1 rounded-xl border-2 border-purple-500 shadow-sm overflow-hidden"
+                        style={{ width: '3.6cm', height: '3.6cm', maxWidth: '4.5cm', maxHeight: '4.5cm' }}
+                        title={isAr ? 'دليل الصورة الملونة الأصلية (معاينة)' : 'Original Color Guide Reference'}
+                      >
+                        <div className="w-full bg-purple-600 text-white text-[8px] font-bold text-center py-0.5 rounded-t leading-none flex items-center justify-center gap-1 shadow-2xs shrink-0">
+                          <span>🎨</span>
+                          <span>{isAr ? 'دليل التلوين' : 'Color Guide'}</span>
+                        </div>
+                        <div className="w-full flex-1 flex items-center justify-center overflow-hidden p-0.5 bg-slate-50 rounded-b border-t border-purple-100 min-h-0">
+                          <img 
+                            src={getPageImages(activePage)[0]?.url || activePage.illustrationUrl} 
+                            alt="Original Color Guide" 
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-contain rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   </>
                   )}
 
