@@ -584,17 +584,22 @@ export default function BookComposerView() {
                               className="w-full h-full object-contain mix-blend-multiply"
                               style={!outlineDataUrl ? { filter: 'grayscale(100%) contrast(1000%) brightness(130%)' } : {}}
                             />
-                            {/* Floating color guide */}
-                            <div className="absolute top-2 right-2 w-12 h-16 bg-white border border-brand-500 rounded shadow-sm overflow-hidden flex flex-col items-center z-20">
-                              <span className="bg-brand-500 text-white text-[5px] font-sans font-bold w-full text-center py-0.5 leading-none">
-                                دليل الألوان
+                            {/* Floating color guide (Max 5cm x 5cm, full image object-contain) */}
+                            <div 
+                              className="absolute top-2 right-2 z-20 flex flex-col items-center bg-white p-1 rounded-lg border-2 border-brand-500 shadow-md overflow-hidden select-none"
+                              style={{ width: '4.8cm', height: '4.8cm', maxWidth: '5cm', maxHeight: '5cm' }}
+                            >
+                              <span className="bg-brand-600 text-white text-[8px] font-sans font-bold w-full text-center py-0.5 leading-none rounded-t">
+                                🎨 {t('color_guide') || 'دليل الألوان'}
                               </span>
-                              <img 
-                                src={activePage.illustrationUrl} 
-                                alt="Color guide" 
-                                referrerPolicy="no-referrer"
-                                className="w-full h-12 object-cover" 
-                              />
+                              <div className="w-full flex-1 flex items-center justify-center overflow-hidden p-0.5 bg-slate-50 rounded-b">
+                                <img 
+                                  src={activePage.illustrationUrl} 
+                                  alt="Color guide" 
+                                  referrerPolicy="no-referrer"
+                                  className="w-full h-full object-contain" 
+                                />
+                              </div>
                             </div>
                           </div>
                         ) : (

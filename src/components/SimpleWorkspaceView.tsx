@@ -1266,6 +1266,28 @@ export default function SimpleWorkspaceView() {
                           </button>
                         </div>
 
+                        {/* Floating Colored Reference Preview Frame for Coloring Mode (Top-Right, <= 5cm x 5cm, object-contain) */}
+                        {!isFullColorMode && (getPageImages(activePage)[0]?.url || activePage.illustrationUrl) && (
+                          <div 
+                            className="absolute top-2 right-2 z-20 flex flex-col items-center bg-white/95 backdrop-blur-xs p-1 rounded-xl border-2 border-purple-500 shadow-md transition-all duration-200 hover:scale-105 select-none pointer-events-auto"
+                            style={{ width: '4.8cm', height: '4.8cm', maxWidth: '5cm', maxHeight: '5cm' }}
+                            title={isAr ? 'دليل الصورة الملونة الأصلية (معاينة)' : 'Original Colored Reference Preview'}
+                          >
+                            <div className="w-full bg-purple-600 text-white text-[9px] font-bold text-center py-0.5 rounded-t-lg leading-none tracking-tight flex items-center justify-center gap-1 shadow-2xs">
+                              <span>🎨</span>
+                              <span>{isAr ? 'دليل التلوين' : 'Color Guide'}</span>
+                            </div>
+                            <div className="w-full flex-1 flex items-center justify-center overflow-hidden p-1 bg-slate-50 rounded-b-lg border-t border-purple-100">
+                              <img 
+                                src={getPageImages(activePage)[0]?.url || activePage.illustrationUrl} 
+                                alt="Original Color Guide" 
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-contain rounded"
+                              />
+                            </div>
+                          </div>
+                        )}
+
                         {/* Draggable & Freeform Resizable Images List */}
                         {getPageImages(activePage).map((imgItem) => {
                           const isSelected = selectedImageId === imgItem.id || getPageImages(activePage).length === 1;
