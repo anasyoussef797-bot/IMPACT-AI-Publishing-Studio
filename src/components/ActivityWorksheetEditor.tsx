@@ -164,10 +164,20 @@ export const ActivityWorksheetEditor: React.FC<Props> = ({ config, onChange, isA
       </div>
 
       {/* Sheet Header Customizer */}
-      <div className="bg-white border border-slate-200 p-3 rounded-xl space-y-2">
-        <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
-          <span>🎨</span> عنوان وشريط ورقة النشاط (العلوية والسنبلة)
+      <div className="bg-white border border-slate-200 p-3 rounded-xl space-y-2.5">
+        <h4 className="font-bold text-slate-800 text-xs flex items-center justify-between border-b border-slate-100 pb-1.5">
+          <span className="flex items-center gap-1.5">🎨 عنوان وشريط ورقة النشاط العلوي (المستطيل الأزرق)</span>
+          <label className="flex items-center gap-1 cursor-pointer text-[10px] text-brand-700 font-bold">
+            <input 
+              type="checkbox" 
+              checked={currentConfig.showHeader !== false && currentConfig.headerSize !== 'hidden'} 
+              onChange={(e) => updateHeader({ showHeader: e.target.checked, headerSize: e.target.checked ? 'compact' : 'hidden' })}
+              className="rounded text-brand-600 focus:ring-brand-500"
+            />
+            <span>إظهار الشريط العلوي</span>
+          </label>
         </h4>
+
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-[10px] font-bold text-slate-600 mb-1">العنوان بالعربية</label>
@@ -188,6 +198,35 @@ export const ActivityWorksheetEditor: React.FC<Props> = ({ config, onChange, isA
               className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-brand-500"
               placeholder="Activity Worksheet..."
             />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-600 mb-1">حجم المستطيل العلوي</label>
+            <select
+              value={currentConfig.headerSize || 'compact'}
+              onChange={(e) => updateHeader({ headerSize: e.target.value as any })}
+              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white"
+            >
+              <option value="compact">مدمج وصغير (Compact - موصى به)</option>
+              <option value="medium">متوسط (Medium)</option>
+              <option value="large">كبير بارز (Large)</option>
+              <option value="hidden">إخفاء المستطيل تماماً</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-600 mb-1">تقسيم الأعمدة بالصفحة</label>
+            <select
+              value={currentConfig.gridCols || 2}
+              onChange={(e) => updateHeader({ gridCols: Number(e.target.value) as any })}
+              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white"
+            >
+              <option value={1}>عمود واحد متتالي (1 Column)</option>
+              <option value={2}>عمودان متوازيان (2 Columns - افتراضي)</option>
+              <option value={3}>3 أعمدة متوازية (3 Columns)</option>
+            </select>
           </div>
         </div>
       </div>
@@ -329,6 +368,41 @@ export const ActivityWorksheetEditor: React.FC<Props> = ({ config, onChange, isA
                   <option value="dashed">متقطع (تتبع/قص)</option>
                   <option value="thick">إطار عريض</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Block Height & Inner Image Scale Controls */}
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/80">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] font-bold text-slate-600">ارتفاع المستطيل (px)</label>
+                  <span className="text-[10px] font-mono text-brand-600 font-bold">{selectedBlock.minHeight || 130}px</span>
+                </div>
+                <input 
+                  type="range" 
+                  min={90} 
+                  max={260} 
+                  step={10}
+                  value={selectedBlock.minHeight || 130}
+                  onChange={(e) => updateBlock(selectedBlock.id, { minHeight: Number(e.target.value) })}
+                  className="w-full accent-brand-600 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] font-bold text-slate-600">ارتفاع الصورة بداخل المربع</label>
+                  <span className="text-[10px] font-mono text-brand-600 font-bold">{selectedBlock.imageHeightPx || 80}px</span>
+                </div>
+                <input 
+                  type="range" 
+                  min={40} 
+                  max={160} 
+                  step={5}
+                  value={selectedBlock.imageHeightPx || 80}
+                  onChange={(e) => updateBlock(selectedBlock.id, { imageHeightPx: Number(e.target.value) })}
+                  className="w-full accent-brand-600 cursor-pointer"
+                />
               </div>
             </div>
 

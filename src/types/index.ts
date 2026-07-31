@@ -82,7 +82,9 @@ export interface ActivityBlock {
   bgColor?: string; // light background color hex e.g. '#f0f9ff'
   borderStyle?: 'solid' | 'dashed' | 'thick';
   widthSpan?: 'full' | 'half' | 'third' | 'twothirds'; // 100%, 50%, 33.3%, 66.6%
-  minHeight?: number; // e.g., 180 (px)
+  minHeight?: number; // e.g., 140 (px)
+  imageHeightPx?: number; // e.g., 80 (px)
+  fontSizePx?: number; // e.g., 12 (px)
   instructionAr?: string; // e.g., "انظر إلى الصورة."
   instructionEn?: string; // e.g., "Look at the picture."
   contentType?: 'image' | 'text' | 'tracing' | 'matching' | 'hybrid';
@@ -100,8 +102,13 @@ export interface ActivityWorksheetConfig {
   headerTitleEn?: string;
   headerSubtitle?: string;
   headerThemeColor?: string;
+  headerSize?: 'compact' | 'medium' | 'large' | 'hidden';
+  showHeader?: boolean;
+  gridCols?: 1 | 2 | 3;
+  globalBlockHeight?: number;
   footerTextAr?: string;
   footerTextEn?: string;
+  showFooter?: boolean; // Defaults to false
   blocks: ActivityBlock[];
 }
 
