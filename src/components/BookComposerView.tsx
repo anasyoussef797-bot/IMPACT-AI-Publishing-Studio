@@ -584,12 +584,13 @@ export default function BookComposerView() {
                               className="w-full h-full object-contain mix-blend-multiply"
                               style={!outlineDataUrl ? { filter: 'grayscale(100%) contrast(1000%) brightness(130%)' } : {}}
                             />
-                            {/* Floating color guide (Max 5cm x 5cm, full image object-contain) */}
+                            {/* Floating color guide (Compact 2.2cm x 2.4cm, hover expand) */}
                             <div 
-                              className="absolute top-2 right-2 z-20 flex flex-col items-center bg-white p-1 rounded-lg border-2 border-brand-500 shadow-md overflow-hidden select-none"
-                              style={{ width: '4.8cm', height: '4.8cm', maxWidth: '5cm', maxHeight: '5cm' }}
+                              className="absolute top-1.5 right-1.5 z-20 flex flex-col items-center bg-white p-1 rounded-lg border-2 border-brand-500 shadow-md transition-all duration-200 hover:scale-150 origin-top-right overflow-hidden select-none cursor-pointer"
+                              style={{ width: '2.2cm', height: '2.4cm', maxWidth: '2.5cm', maxHeight: '2.8cm' }}
+                              title={t('color_guide') || 'دليل الألوان'}
                             >
-                              <span className="bg-brand-600 text-white text-[8px] font-sans font-bold w-full text-center py-0.5 leading-none rounded-t">
+                              <span className="bg-brand-600 text-white text-[7px] font-sans font-bold w-full text-center py-0.5 leading-none rounded-t">
                                 🎨 {t('color_guide') || 'دليل الألوان'}
                               </span>
                               <div className="w-full flex-1 flex items-center justify-center overflow-hidden p-0.5 bg-slate-50 rounded-b">
