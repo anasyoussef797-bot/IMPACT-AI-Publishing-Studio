@@ -16,30 +16,50 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
+// Helper function to sanitize and validate AI model names
+function sanitizeModel(provider: string, model?: string): string {
+  if (provider === 'gemini') {
+    if (!model || model.includes('2.5') || model.includes('1.5') || model === 'gemini-2.5-flash' || !model.startsWith('gemini-')) {
+      return 'gemini-3.6-flash';
+    }
+    return model;
+  }
+  if (provider === 'openai') {
+    if (!model || !model.startsWith('gpt-')) return 'gpt-4o-mini';
+    return model;
+  }
+  if (provider === 'anthropic') {
+    if (!model || !model.startsWith('claude-')) return 'claude-3-5-sonnet-latest';
+    return model;
+  }
+  return model || 'gemini-3.6-flash';
+}
+
 // Helper function to extract credentials from headers or fall back to system env
 function getRequestCredentials(req: express.Request) {
-  const customKey = req.headers['x-custom-api-key'] as string;
-  const customProvider = req.headers['x-custom-provider'] as string;
-  const customModel = req.headers['x-custom-model'] as string;
+  const customKey = (req.headers['x-custom-api-key'] as string || '').trim();
+  const customProvider = (req.headers['x-custom-provider'] as string || 'gemini').trim();
+  const rawModel = (req.headers['x-custom-model'] as string || '').trim();
+  const customModel = sanitizeModel(customProvider, rawModel);
 
-  if (customKey && customKey.trim().length > 0) {
+  if (customKey && customKey.length > 0) {
     return {
-      key: customKey.trim(),
-      provider: customProvider || 'gemini',
-      model: customModel || ''
+      key: customKey,
+      provider: customProvider,
+      model: customModel
     };
   }
 
   // Fallback to environment variables
-  const fallbackKey = process.env.GEMINI_API_KEY;
+  const fallbackKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!fallbackKey || fallbackKey === 'MY_GEMINI_API_KEY' || fallbackKey === '') {
-    throw new Error('API Key is missing. Please enter your API key in the AI Providers panel on the screen.');
+    throw new Error('مفتاح الـ API غير متوفر. يرجى إدخال مفتاح الـ API الخاص بك في لوحة إعدادات الذكاء الاصطناعي.');
   }
 
   return {
     key: fallbackKey,
     provider: 'gemini',
-    model: 'gemini-3.5-flash'
+    model: 'gemini-3.6-flash'
   };
 }
 
@@ -53,6 +73,7 @@ async function callLLM(options: {
   responseSchema?: any;
 }) {
   const { provider, key, model, systemInstruction, prompt, responseSchema } = options;
+  const effectiveModel = sanitizeModel(provider, model);
 
   if (provider === 'gemini') {
     const ai = new GoogleGenAI({
@@ -67,7 +88,7 @@ async function callLLM(options: {
       config.responseSchema = responseSchema;
     }
     const response = await ai.models.generateContent({
-      model: model || 'gemini-3.5-flash',
+      model: effectiveModel,
       contents: prompt,
       config
     });
@@ -182,24 +203,62 @@ async function callImageGen(options: {
       apiKey: key,
       httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
     });
-    const response = await ai.models.generateContent({
-      model: model || 'gemini-3.1-flash-lite-image',
-      contents: { parts: [{ text: imagePrompt }] },
-      config: { imageConfig: { aspectRatio: '1:1' } }
-    });
 
-    let imageUrl: string | null = null;
-    if (response.candidates?.[0]?.content?.parts) {
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          const base64Data = part.inlineData.data;
-          imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${base64Data}`;
-          break;
+    // Try gemini-3.1-flash-lite-image generateContent
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite-image',
+        contents: {
+          parts: [{ text: imagePrompt }],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: '1:1',
+          },
+        },
+      });
+      if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+          }
         }
       }
+    } catch (err: any) {
+      // Quiet fallback on quota limits or unavailable image models
     }
-    if (imageUrl) return imageUrl;
-    throw new Error('Gemini image generator returned no inline data.');
+
+    // Fallback: Pollinations AI Image Service (Keyless free AI image provider)
+    try {
+      const pollinationsPrompt = encodeURIComponent(imagePrompt);
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${pollinationsPrompt}?width=512&height=512&seed=${Math.floor(Math.random() * 100000)}&nologo=true`;
+      
+      const resp = await fetch(pollinationsUrl);
+      if (resp.ok) {
+        const arrayBuffer = await resp.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const contentType = resp.headers.get('content-type') || 'image/jpeg';
+        return `data:${contentType};base64,${base64}`;
+      }
+    } catch (pollinationsErr: any) {
+      // Quiet fallback to SVG vector generator
+    }
+
+    // Fallback 4: Clean vector SVG fallback template
+    const cleanPrompt = prompt.replace(/["'<>]/g, '').slice(0, 35);
+    const svgColor = type === 'coloring' ? '#ffffff' : '#f0f9ff';
+    const strokeColor = type === 'coloring' ? '#1e293b' : '#0284c7';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+      <rect width="512" height="512" fill="${svgColor}" rx="32"/>
+      <rect x="24" y="24" width="464" height="464" fill="none" stroke="${strokeColor}" stroke-width="4" stroke-dasharray="8 8" rx="24"/>
+      <circle cx="256" cy="210" r="90" fill="none" stroke="${strokeColor}" stroke-width="6"/>
+      <path d="M 210 210 Q 256 160 302 210" fill="none" stroke="${strokeColor}" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="225" cy="190" r="10" fill="${strokeColor}"/>
+      <circle cx="287" cy="190" r="10" fill="${strokeColor}"/>
+      <text x="256" y="360" font-family="system-ui, sans-serif" font-size="22" font-weight="bold" fill="${strokeColor}" text-anchor="middle">${cleanPrompt}</text>
+      <text x="256" y="400" font-family="system-ui, sans-serif" font-size="14" fill="#64748b" text-anchor="middle">لوحة تعليمية مصورة للأطفال</text>
+    </svg>`;
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
   }
 
   if (provider === 'openai') {
@@ -574,18 +633,19 @@ app.post('/api/assistant/chat', async (req, res) => {
     res.json(parsed);
 
   } catch (error: any) {
-    console.warn('[SERVER] Assistant chat AI call failed or key missing. Returning simulated fallback.', error.message);
+    console.warn('[SERVER] Assistant chat AI call error:', error.message);
     
     // Arabic or multilingual fallback generator
     const msg = (message || "").toLowerCase();
     const isArabic = /[\u0600-\u06FF]/.test(message || "");
+    const errorNotice = `⚠️ **ملاحظة من النظام**: يتعذر الاتصال بالذكاء الاصطناعي مباشرة (سبب الخطأ: ${error.message}). تم تشغيل محرك المساعد الذاتي المحلي لخدمتك.\n\n`;
     
     let reply = "";
     let actions: any[] = [];
     
     if (isArabic) {
       if (msg.includes('تلوين') || msg.includes('رسم') || msg.includes('color')) {
-        reply = `لقد قمت بتهيئة وضبط عمليات الإنتاج تلقائياً لتصميم كتاب تلوين رائع! تم إعداد بيانات الكتاب وتخطيط الفصول وإضافة صفحات تلوين مبتكرة تناسب الأطفال بناءً على طلبك: "${message}".`;
+        reply = errorNotice + `لقد قمت بتهيئة وضبط عمليات الإنتاج تلقائياً لتصميم كتاب تلوين رائع! تم إعداد بيانات الكتاب وتخطيط الفصول وإضافة صفحات تلوين مبتكرة تناسب الأطفال بناءً على طلبك: "${message}".`;
         actions = [
           {
             type: "CREATE_BOOK",

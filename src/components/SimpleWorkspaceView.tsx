@@ -889,8 +889,8 @@ export default function SimpleWorkspaceView() {
             </h3>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-2xl">
               {isAr 
-                ? 'مرحباً بك! هذا هو مجمع كتب التلوين والأنشطة المبسط. هنا يمكنك إضافة صفحات جديدة، توليد صور تلوين رائعة بالذكاء الاصطناعي بلمسة واحدة، أو رفع صور من جهازك مباشرة، وتصدير الكتاب للطباعة فوراً كملف PDF احترافي.' 
-                : 'Welcome! This is the simplified coloring book composer. Add pages, generate child-safe coloring outline sheets using AI, or upload your own pictures from your computer instantly, then export the completed book to print!'}
+                ? 'مرحباً بك! هذا هو مجمع كتب التلوين والأنشطة المبسط. هنا يمكنك إضافة صفحات جديدة، ورفع صور من جهازك مباشرة أو رسم العناصر وتصميمها بسهولة، وتصدير الكتاب للطباعة فوراً كملف PDF احترافي.' 
+                : 'Welcome! This is the simplified coloring book composer. Add pages, upload picture files from your computer, or design outlines directly, then export the completed book to print!'}
             </p>
           </div>
         </div>
@@ -1684,30 +1684,6 @@ export default function SimpleWorkspaceView() {
                           <Upload className="w-4 h-4" />
                           {isAr ? 'اختر صورة من الكمبيوتر للرفع 📁' : 'Choose Picture File from Computer 📁'}
                         </button>
-                      </div>
-
-                      {/* AI Outline Generator Box */}
-                      <div className="space-y-2 pt-1 border-t border-slate-100">
-                        <span className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mt-2">
-                          {isAr ? 'الخيار الثاني: توليد رسمة تلوين ذكية بالذكاء الاصطناعي:' : 'Option 2: Generate coloring outline via AI:'}
-                        </span>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={aiPrompt}
-                            onChange={(e) => setAiPrompt(e.target.value)}
-                            placeholder={isAr ? 'مثال: أسد يلعب كرة القدم، رسم كرتوني بسيط...' : 'E.g. cute lion playing football, simple outline style...'}
-                            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden"
-                          />
-                          <button
-                            onClick={handleGenerateAI}
-                            disabled={isAiGenerating || !aiPrompt.trim()}
-                            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1 shadow-sm"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                            {isAr ? 'توليد' : 'Create'}
-                          </button>
-                        </div>
                       </div>
 
                       {/* Active Images list on current page */}

@@ -19,7 +19,6 @@ import BookComposerView from './BookComposerView';
 import QualityReviewView from './QualityReviewView';
 import PrintExportView from './PrintExportView';
 import BookDoneView from './BookDoneView';
-import AiAssistantChat from './AiAssistantChat';
 import SimpleWorkspaceView from './SimpleWorkspaceView';
 
 export default function PrepressWorkspace() {
@@ -72,14 +71,12 @@ export default function PrepressWorkspace() {
 
   // Professional side tabs definitions
   const sidePanels = [
-    { id: 'assistant', icon: Sparkles, title: 'AI Copilot' },
     { id: 'preflight', icon: ShieldCheck, title: t('quality_dashboard') },
     { id: 'assets', icon: FolderOpen, title: t('asset_manager') },
     { id: 'versions', icon: History, title: t('version_history') },
     { id: 'prompts', icon: Terminal, title: t('prompt_history') },
     { id: 'print', icon: Printer, title: t('print_settings') },
     { id: 'licensing', icon: FileCheck, title: t('licensing') },
-    { id: 'providers', icon: Cpu, title: t('ai_providers') },
   ] as const;
 
   return (
@@ -200,13 +197,6 @@ export default function PrepressWorkspace() {
 
               {/* Panel Bodies depending on active selection */}
               <div className="flex-1 p-5 overflow-y-auto space-y-4 text-xs leading-relaxed text-slate-600">
-                
-                {/* AI CO-PILOT ASSISTANT PANEL */}
-                {activePanel === 'assistant' && (
-                  <div className="h-[480px]">
-                    <AiAssistantChat />
-                  </div>
-                )}
 
                 {/* PREFLIGHT SCORING PANEL */}
                 {activePanel === 'preflight' && (
@@ -369,150 +359,6 @@ export default function PrepressWorkspace() {
                         <span className="text-slate-500">Linguistic license</span>
                         <span className="font-mono text-[10px]">CC-BY-NC-4.0</span>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ADVANCED PROVIDERS / PLUGIN INFRA */}
-                {activePanel === 'providers' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-display font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                        <Cpu className="w-4 h-4 text-emerald-600 animate-pulse" />
-                        {uiLanguage === 'ar' ? 'إدارة مفاتيح الـ API ومزودي الذكاء الاصطناعي' : 'AI Providers & API Keys'}
-                      </h4>
-                    </div>
-                    
-                    <p className="text-[11px] text-slate-500 leading-normal bg-emerald-50/50 border border-emerald-100/40 p-2.5 rounded-md">
-                      {uiLanguage === 'ar' 
-                        ? 'تتيح لك هذه اللوحة تبديل مزود الذكاء الاصطناعي ووضع مفتاح الـ API الخاص بك لتفادي انقطاع الخدمة أو القيود والتحكم الكامل في الأدوات.' 
-                        : 'This panel allows you to dynamically swap your AI provider and paste custom API keys to bypass rate limits.'}
-                    </p>
-
-                    <div className="space-y-3 pt-2">
-                      {/* Provider Select */}
-                      <div>
-                        <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1 font-semibold">
-                          {uiLanguage === 'ar' ? 'مزود الخدمة النشط' : 'Active AI Provider'}
-                        </label>
-                        <select 
-                          value={aiProvider}
-                          onChange={(e) => {
-                            setAiProvider(e.target.value as any);
-                          }}
-                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs bg-white text-slate-800 focus:outline-hidden focus:border-emerald-500 transition-all font-medium"
-                        >
-                          <option value="gemini">Google Gemini (Recommended)</option>
-                          <option value="openai">OpenAI (GPT & DALL-E)</option>
-                          <option value="anthropic">Anthropic Claude</option>
-                        </select>
-                      </div>
-
-                      {/* Custom Model Input/Select */}
-                      <div>
-                        <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1 font-semibold">
-                          {uiLanguage === 'ar' ? 'نموذج التوليد (Model)' : 'AI Model Name'}
-                        </label>
-                        {aiProvider === 'gemini' && (
-                          <select
-                            value={customModel}
-                            onChange={(e) => setCustomModel(e.target.value)}
-                            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs bg-white text-slate-800 focus:outline-hidden focus:border-emerald-500 font-mono"
-                          >
-                            <option value="gemini-3.5-flash">gemini-3.5-flash (Standard)</option>
-                            <option value="gemini-2.5-flash">gemini-2.5-flash (Latest Speed)</option>
-                            <option value="gemini-2.5-pro">gemini-2.5-pro (Creative Writing)</option>
-                            <option value="gemini-1.5-flash">gemini-1.5-flash (Classic Fast)</option>
-                            <option value="gemini-1.5-pro">gemini-1.5-pro (Classic Quality)</option>
-                          </select>
-                        )}
-
-                        {aiProvider === 'openai' && (
-                          <select
-                            value={customModel}
-                            onChange={(e) => setCustomModel(e.target.value)}
-                            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs bg-white text-slate-800 focus:outline-hidden focus:border-emerald-500 font-mono"
-                          >
-                            <option value="gpt-4o-mini">gpt-4o-mini (Cost-Efficient)</option>
-                            <option value="gpt-4o">gpt-4o (Smartest)</option>
-                            <option value="gpt-4-turbo">gpt-4-turbo</option>
-                          </select>
-                        )}
-
-                        {aiProvider === 'anthropic' && (
-                          <select
-                            value={customModel}
-                            onChange={(e) => setCustomModel(e.target.value)}
-                            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs bg-white text-slate-800 focus:outline-hidden focus:border-emerald-500 font-mono"
-                          >
-                            <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest (High-Quality)</option>
-                            <option value="claude-3-5-haiku-20241022">claude-3-5-haiku-20241022 (Fast)</option>
-                            <option value="claude-3-opus-20240229">claude-3-opus-20240229 (Deep Logic)</option>
-                          </select>
-                        )}
-                      </div>
-
-                      {/* API Key Input with Paste Button */}
-                      <div>
-                        <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1 font-semibold">
-                          {uiLanguage === 'ar' ? 'مفتاح الـ API الخاص بك' : 'Your Custom API Key'}
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="password"
-                            placeholder={
-                              aiProvider === 'gemini' 
-                                ? 'AIzaSy...' 
-                                : aiProvider === 'openai' 
-                                ? 'sk-...' 
-                                : 'sk-ant-...'
-                            }
-                            value={customApiKey}
-                            onChange={(e) => setCustomApiKey(e.target.value)}
-                            className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-md text-xs font-mono focus:outline-hidden focus:border-emerald-500 bg-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                const text = await navigator.clipboard.readText();
-                                if (text) {
-                                  setCustomApiKey(text);
-                                }
-                              } catch (err) {
-                                addNotification('error', uiLanguage === 'ar' ? 'يرجى لصق المفتاح يدوياً، لم نتمكن من الوصول للحافظة.' : 'Please paste key manually, clipboard permission denied.');
-                              }
-                            }}
-                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-md font-medium transition-colors cursor-pointer"
-                            title={uiLanguage === 'ar' ? 'لصق من الحافظة' : 'Paste from clipboard'}
-                          >
-                            {uiLanguage === 'ar' ? 'لصق' : 'Paste'}
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-1 leading-normal">
-                          {uiLanguage === 'ar' 
-                            ? 'يتم تخزين المفاتيح محلياً في متصفحك بشكل آمن تماماً ولا يتم مشاركتها أبداً.' 
-                            : 'Keys are stored safely in your local browser and never shared elsewhere.'}
-                        </p>
-                      </div>
-
-                      {/* Status indicator */}
-                      <div className="mt-4 p-2.5 bg-slate-50 border border-slate-100 rounded-md flex items-center justify-between">
-                        <span className="text-[10px] text-slate-500">
-                          {uiLanguage === 'ar' ? 'حالة التوصيل النشط:' : 'Engine Status:'}
-                        </span>
-                        {customApiKey ? (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            {uiLanguage === 'ar' ? 'مفتاح مخصص نشط' : 'Custom Key Active'}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-medium">
-                            {uiLanguage === 'ar' ? 'المفتاح المشترك الافتراضي' : 'Default Shared Key'}
-                          </span>
-                        )}
-                      </div>
-
                     </div>
                   </div>
                 )}

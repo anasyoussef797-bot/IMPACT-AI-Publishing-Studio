@@ -304,20 +304,28 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
   isChatLoading: false,
 
   // Custom AI Credentials State
-  customApiKey: typeof window !== 'undefined' ? (window.localStorage.getItem('impact_custom_api_key') || '') : '',
+  customApiKey: typeof window !== 'undefined' ? (window.localStorage.getItem('impact_custom_api_key') || '').trim() : '',
   aiProvider: typeof window !== 'undefined' ? ((window.localStorage.getItem('impact_ai_provider') || 'gemini') as any) : 'gemini',
-  customModel: typeof window !== 'undefined' ? (window.localStorage.getItem('impact_custom_model') || 'gemini-3.5-flash') : 'gemini-3.5-flash',
+  customModel: typeof window !== 'undefined' ? (() => {
+    const saved = window.localStorage.getItem('impact_custom_model');
+    if (!saved || saved.includes('2.5') || saved.includes('1.5') || saved.includes('3.5') || saved === 'gemini-2.5-flash') {
+      window.localStorage.setItem('impact_custom_model', 'gemini-3.6-flash');
+      return 'gemini-3.6-flash';
+    }
+    return saved;
+  })() : 'gemini-3.6-flash',
 
   setCustomApiKey: (key) => {
+    const trimmed = (key || '').trim();
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('impact_custom_api_key', key);
+      window.localStorage.setItem('impact_custom_api_key', trimmed);
     }
-    set({ customApiKey: key });
-    get().addNotification('success', 'API Key updated successfully.');
+    set({ customApiKey: trimmed });
+    get().addNotification('success', get().uiLanguage === 'ar' ? 'تم تحديث مفتاح API بنجاح.' : 'API Key updated successfully.');
   },
 
   setAiProvider: (provider) => {
-    let defaultModel = 'gemini-3.5-flash';
+    let defaultModel = 'gemini-3.6-flash';
     if (provider === 'openai') defaultModel = 'gpt-4o-mini';
     else if (provider === 'anthropic') defaultModel = 'claude-3-5-sonnet-latest';
 
@@ -330,11 +338,12 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
   },
 
   setCustomModel: (model) => {
+    const validModel = (model.includes('2.5') || model.includes('1.5') || model.includes('3.5')) ? 'gemini-3.6-flash' : model;
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('impact_custom_model', model);
+      window.localStorage.setItem('impact_custom_model', validModel);
     }
-    set({ customModel: model });
-    get().addNotification('info', `Model updated to: ${model}`);
+    set({ customModel: validModel });
+    get().addNotification('info', `Model updated to: ${validModel}`);
   },
 
   // Global Settings Actions
@@ -1096,7 +1105,7 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
 
   // Notification Mechanics
   addNotification: (type, message) => {
-    const id = `notif-${Date.now()}`;
+    const id = `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     set((state) => ({
       notifications: [...state.notifications, { id, type, message }]
     }));
