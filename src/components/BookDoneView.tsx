@@ -94,7 +94,42 @@ export default function BookDoneView() {
       </div>
     `;
 
-    const pagesHtml = currentBook.pages.map((p, idx) => `
+    const pagesHtml = currentBook.pages.map((p, idx) => {
+      const isFullBleed = p.fullBleedImage || p.hidePageHeaderFooter || p.layoutType === 'full-illustration';
+      const showBottomActivity = p.showColoringActivityBox || (p.activity && p.activity.type === 'tracing');
+
+      if (isFullBleed && !showBottomActivity) {
+        return `
+          <div class="print-page" dir="${isRtl ? 'rtl' : 'ltr'}" style="padding: 0; margin: 0; width: 210mm; height: 297mm; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; page-break-after: always; page-break-inside: avoid; background: #ffffff;">
+            ${p.illustrationUrl ? `
+              <img 
+                src="${outlineImages[idx] || p.illustrationUrl}" 
+                style="width: 100%; height: 100%; object-fit: contain; display: block;" 
+                crossOrigin="anonymous" 
+                alt="صفحة الكتاب" 
+              />
+            ` : ''}
+
+            ${(p.redactionBlocks || []).map(b => `
+              <div style="position: absolute; left: ${b.x}%; top: ${b.y}%; width: ${b.width}%; height: ${b.height}%; background-color: ${b.color || '#ffffff'}; z-index: 30; pointer-events: none;"></div>
+            `).join('')}
+
+            ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `
+              <div style="position: absolute; ${
+                p.titlePosition === 'top-right' ? 'top: 15px; right: 15px;' :
+                p.titlePosition === 'top-left' ? 'top: 15px; left: 15px;' :
+                p.titlePosition === 'bottom-right' ? 'bottom: 15px; right: 15px;' :
+                p.titlePosition === 'bottom-left' ? 'bottom: 15px; left: 15px;' :
+                'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+              } z-index: 20; ${p.titleBgCard ? 'background: rgba(255,255,255,0.95); padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0;' : ''}">
+                <h2 style="font-size: ${p.titleSize || 22}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0;">${p.title}</h2>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      return `
       <div class="print-page" dir="${isRtl ? 'rtl' : 'ltr'}">
         
         <!-- Header: Top Right = Colored Ref (<= 6cm) [only in coloring mode], Top Center = Title & Badge, Top Left = Nursery Logo -->
@@ -122,7 +157,7 @@ export default function BookDoneView() {
         </div>
 
         <!-- Body: Coloring Outline Image in Center with decoupled text positions -->
-        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center;">
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; position: relative;">
           
           <!-- Top Text Section -->
           <div>
@@ -140,6 +175,11 @@ export default function BookDoneView() {
                 crossOrigin="anonymous" 
                 alt="رسمة التلوين" 
               />
+
+              <!-- Redaction Blocks -->
+              ${(p.redactionBlocks || []).map(b => `
+                <div style="position: absolute; left: ${b.x}%; top: ${b.y}%; width: ${b.width}%; height: ${b.height}%; background-color: ${b.color || '#ffffff'}; z-index: 30;"></div>
+              `).join('')}
 
               <!-- Overlay Title -->
               ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `
@@ -190,13 +230,13 @@ export default function BookDoneView() {
           </div>
 
           <!-- Character Tracing Box directly below the Outline Image -->
-          ${p.activity && p.activity.type === 'tracing' ? `
+          ${(p.showColoringActivityBox || (p.activity && p.activity.type === 'tracing')) ? `
             <div style="width: 92%; border: 2.5px dashed #0f172a; border-radius: 14px; padding: 8px 16px; background: #f8fafc; margin-top: 6px;">
               <span style="font-size: 11px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 2px;">✍️ ${isAr ? 'تتبع خطوط الحرف ولونه:' : 'Trace lines & color:'}</span>
               <div style="display: flex; justify-content: center; align-items: center; gap: 32px; font-family: monospace;">
-                <span style="font-size: 46px; font-weight: 900; color: #1e293b; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
-                <span style="font-size: 46px; font-weight: 900; color: #94a3b8; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
-                <span style="font-size: 46px; font-weight: 900; color: #cbd5e1; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+                <span style="font-size: 46px; font-weight: 900; color: #1e293b; text-decoration: line-through;">${p.activity?.contentData?.character || 'أ'}</span>
+                <span style="font-size: 46px; font-weight: 900; color: #94a3b8; text-decoration: line-through;">${p.activity?.contentData?.character || 'أ'}</span>
+                <span style="font-size: 46px; font-weight: 900; color: #cbd5e1; text-decoration: line-through;">${p.activity?.contentData?.character || 'أ'}</span>
               </div>
             </div>
           ` : ''}
@@ -221,7 +261,8 @@ export default function BookDoneView() {
         </div>
 
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     doc.open();
     doc.write(`
@@ -346,7 +387,43 @@ export default function BookDoneView() {
         </div>
       `;
 
-      const pagesHtml = currentBook.pages.map((p, idx) => `
+      const pagesHtml = currentBook.pages.map((p, idx) => {
+        const isFullBleed = p.fullBleedImage || p.hidePageHeaderFooter || p.layoutType === 'full-illustration';
+        const showBottomActivity = p.showColoringActivityBox || (p.activity && p.activity.type === 'tracing');
+
+        if (isFullBleed && !showBottomActivity) {
+          return `
+            <div class="pdf-page" style="width: 794px; height: 1123px; padding: 0; margin: 0; position: relative; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #ffffff; overflow: hidden;">
+              ${p.illustrationUrl ? `
+                <img 
+                  src="${outlineImages[idx] || p.illustrationUrl}" 
+                  style="width: 100%; height: 100%; object-fit: contain; display: block;" 
+                  crossOrigin="anonymous" 
+                  alt="صفحة الكتاب" 
+                />
+              ` : ''}
+
+              <!-- Redaction Blocks -->
+              ${(p.redactionBlocks || []).map(b => `
+                <div style="position: absolute; left: ${b.x}%; top: ${b.y}%; width: ${b.width}%; height: ${b.height}%; background-color: ${b.color || '#ffffff'}; z-index: 30;"></div>
+              `).join('')}
+
+              ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `
+                <div style="position: absolute; ${
+                  p.titlePosition === 'top-right' ? 'top: 20px; right: 20px;' :
+                  p.titlePosition === 'top-left' ? 'top: 20px; left: 20px;' :
+                  p.titlePosition === 'bottom-right' ? 'bottom: 20px; right: 20px;' :
+                  p.titlePosition === 'bottom-left' ? 'bottom: 20px; left: 20px;' :
+                  'top: 50%; left: 50%; transform: translate(-50%, -50%);'
+                } z-index: 20; ${p.titleBgCard ? 'background: rgba(255,255,255,0.95); padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0;' : ''}">
+                  <h2 style="font-size: ${p.titleSize || 24}px; font-weight: 800; color: ${p.titleColor || '#0f172a'}; margin: 0;">${p.title}</h2>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+
+        return `
         <div class="pdf-page" style="width: 794px; height: 1123px; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0;">
           
           <!-- Header Area -->
@@ -485,13 +562,13 @@ export default function BookDoneView() {
               </div>
 
               <!-- Tracing Box directly below Outline Image -->
-              ${p.activity && p.activity.type === 'tracing' ? `
+              ${(p.showColoringActivityBox || (p.activity && p.activity.type === 'tracing')) ? `
                 <div style="width: 92%; border: 2.5px dashed #0f172a; border-radius: 16px; padding: 10px 16px; background: #f8fafc; margin-top: 8px;">
                   <span style="font-size: 12px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 4px;">✍️ ${isAr ? 'تتبع خطوط الحرف ولونه:' : 'Trace lines & color:'}</span>
                   <div style="display: flex; justify-content: center; align-items: center; gap: 32px; font-family: monospace;">
-                    <span style="font-size: 52px; font-weight: 900; color: #1e293b; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
-                    <span style="font-size: 52px; font-weight: 900; color: #94a3b8; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
-                    <span style="font-size: 52px; font-weight: 900; color: #cbd5e1; text-decoration: line-through;">${p.activity.contentData?.character || 'أ'}</span>
+                    <span style="font-size: 52px; font-weight: 900; color: #1e293b; text-decoration: line-through;">${p.activity?.contentData?.character || 'أ'}</span>
+                    <span style="font-size: 52px; font-weight: 900; color: #94a3b8; text-decoration: line-through;">${p.activity?.contentData?.character || 'أ'}</span>
+                    <span style="font-size: 52px; font-weight: 900; color: #cbd5e1; text-decoration: line-through;">${p.activity?.contentData?.character || 'أ'}</span>
                   </div>
                 </div>
               ` : ''}
@@ -516,7 +593,8 @@ export default function BookDoneView() {
             </div>
           </div>
         </div>
-      `).join('');
+      `;
+    }).join('');
 
       pdfContainer.innerHTML = coverHtml + pagesHtml;
       document.body.appendChild(pdfContainer);

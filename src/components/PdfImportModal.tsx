@@ -114,6 +114,9 @@ export default function PdfImportModal({ isOpen, onClose }: PdfImportModalProps)
       layoutType: 'full-illustration' as const,
       illustrationUrl: p.imageDataUrl,
       textContent: '',
+      hidePageHeaderFooter: true,
+      showColoringActivityBox: false,
+      fullBleedImage: true,
       colorsUsed: ['#e11d48', '#2563eb', '#16a34a', '#ca8a04', '#ea580c'],
       activity: {
         type: 'none' as const

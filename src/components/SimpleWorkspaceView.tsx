@@ -1147,24 +1147,29 @@ export default function SimpleWorkspaceView() {
                   <span className="absolute bottom-1 right-2 text-[8px] font-mono text-cyan-400/30 select-none">هامش القص (Bleed Limits)</span>
                 </div>
 
-                {/* Real-time Fixed Header */}
-                <div className="absolute top-4 left-6 right-6 flex items-center justify-end border-b border-slate-100 pb-1.5 text-[10px] font-bold text-slate-400 select-none" dir="rtl">
-                  <span className="font-mono text-[9px]">A4</span>
-                </div>
+                {/* Real-time Fixed Header (shows only if headers are enabled) */}
+                {!activePage.hidePageHeaderFooter && (
+                  <div className="absolute top-4 left-6 right-6 flex items-center justify-end border-b border-slate-100 pb-1.5 text-[10px] font-bold text-slate-400 select-none" dir="rtl">
+                    <span className="font-mono text-[9px]">A4</span>
+                  </div>
+                )}
 
-                {/* Real-time Fixed Footer (اسم المنصة) */}
-                <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[9px] font-bold text-slate-400 select-none" dir="rtl">
-                  <span>🌟 {platformName || (isAr ? 'منصة التعليم والنشاط' : 'Smart Kids Platform')}</span>
-                  <span className="font-mono text-xs">{activePage.pageNumber}</span>
-                </div>
+                {/* Real-time Fixed Footer (shows only if headers/footers are enabled) */}
+                {!activePage.hidePageHeaderFooter && (
+                  <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[9px] font-bold text-slate-400 select-none" dir="rtl">
+                    <span>🌟 {platformName || (isAr ? 'منصة التعليم والنشاط' : 'Smart Kids Platform')}</span>
+                    <span className="font-mono text-xs">{activePage.pageNumber}</span>
+                  </div>
+                )}
 
                 {/* Sheet Content container */}
                 <div 
-                  className={`px-6 pb-6 h-full flex flex-col justify-between select-none text-right relative overflow-hidden transition-all duration-200 ${
-                    topMargin === '0cm' ? 'pt-1' :
-                    topMargin === '1.5cm' ? 'pt-4' :
-                    topMargin === '5cm' ? 'pt-14' :
-                    'pt-7'
+                  className={`h-full flex flex-col justify-between select-none text-right relative overflow-hidden transition-all duration-200 ${
+                    (activePage.hidePageHeaderFooter || activePage.fullBleedImage || topMargin === '0cm')
+                      ? 'p-0'
+                      : topMargin === '1.5cm' ? 'px-6 pb-6 pt-4' :
+                        topMargin === '5cm' ? 'px-6 pb-6 pt-14' :
+                        'px-6 pb-6 pt-7'
                   }`} 
                   dir={isRtl ? 'rtl' : 'ltr'}
                 >
@@ -1603,58 +1608,60 @@ export default function SimpleWorkspaceView() {
                     )}
                   </div>
 
-                  {/* BOTTOM FEATURE BAR: Tracing Box + Color Guide Frame at Bottom-Left */}
-                  <div className="mt-2 pt-2 border-t border-slate-100/80 flex items-stretch justify-between gap-3 select-none" dir={isAr ? 'rtl' : 'ltr'}>
-                    {/* 1. Tracing Box (or Spacer if Tracing is Disabled) */}
-                    <div className="flex-1 min-w-0">
-                      {activePage.activity && activePage.activity.type === 'tracing' ? (
-                        <div className="p-2 bg-brand-50/20 border-2 border-dashed border-brand-300 rounded-xl text-center h-full flex flex-col justify-center">
-                          <span className="text-[10px] font-mono font-extrabold text-brand-600 block mb-1 uppercase tracking-wider">
-                            {isAr ? '✍️ مستشار تتبع خطوط الحروف (حجم كبير للتلوين والتتبع)' : '✍️ Large Practice Tracing Character'}
-                          </span>
-                          <div className="h-14 md:h-16 border-2 border-dashed border-slate-300 rounded-xl bg-white flex items-center justify-center gap-4 md:gap-6 px-2">
-                            <span className="text-3xl md:text-4xl font-display font-black text-slate-400 tracking-[0.2em] line-through select-none">
-                              {activePage.activity.contentData?.character || 'أ'}
+                  {/* BOTTOM FEATURE BAR: Tracing Box + Color Guide Frame (Optional, off by default) */}
+                  {(activePage.showColoringActivityBox || (activePage.activity && activePage.activity.type === 'tracing')) && (
+                    <div className="mt-2 pt-2 border-t border-slate-100/80 flex items-stretch justify-between gap-3 select-none" dir={isAr ? 'rtl' : 'ltr'}>
+                      {/* 1. Tracing Box (or Spacer if Tracing is Disabled) */}
+                      <div className="flex-1 min-w-0">
+                        {activePage.activity && activePage.activity.type === 'tracing' ? (
+                          <div className="p-2 bg-brand-50/20 border-2 border-dashed border-brand-300 rounded-xl text-center h-full flex flex-col justify-center">
+                            <span className="text-[10px] font-mono font-extrabold text-brand-600 block mb-1 uppercase tracking-wider">
+                              {isAr ? '✍️ مستشار تتبع خطوط الحروف (حجم كبير للتلوين والتتبع)' : '✍️ Large Practice Tracing Character'}
                             </span>
-                            <span className="text-3xl md:text-4xl font-display font-black text-slate-300/60 tracking-[0.2em] line-through select-none">
-                              {activePage.activity.contentData?.character || 'أ'}
-                            </span>
-                            <span className="text-3xl md:text-4xl font-display font-black text-slate-300/30 tracking-[0.2em] line-through select-none">
-                              {activePage.activity.contentData?.character || 'أ'}
+                            <div className="h-14 md:h-16 border-2 border-dashed border-slate-300 rounded-xl bg-white flex items-center justify-center gap-4 md:gap-6 px-2">
+                              <span className="text-3xl md:text-4xl font-display font-black text-slate-400 tracking-[0.2em] line-through select-none">
+                                {activePage.activity.contentData?.character || 'أ'}
+                              </span>
+                              <span className="text-3xl md:text-4xl font-display font-black text-slate-300/60 tracking-[0.2em] line-through select-none">
+                                {activePage.activity.contentData?.character || 'أ'}
+                              </span>
+                              <span className="text-3xl md:text-4xl font-display font-black text-slate-300/30 tracking-[0.2em] line-through select-none">
+                                {activePage.activity.contentData?.character || 'أ'}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-2 bg-slate-50/40 border border-dashed border-slate-200/80 rounded-xl text-center flex items-center justify-center h-full min-h-[70px]">
+                            <span className="text-[10px] font-bold text-slate-400 font-sans">
+                              {isAr ? '✨ مساحة التلوين والأنشطة المكملة' : '✨ Coloring & Practice Area'}
                             </span>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="p-2 bg-slate-50/40 border border-dashed border-slate-200/80 rounded-xl text-center flex items-center justify-center h-full min-h-[70px]">
-                          <span className="text-[10px] font-bold text-slate-400 font-sans">
-                            {isAr ? '✨ مساحة التلوين والأنشطة المكملة' : '✨ Coloring & Practice Area'}
-                          </span>
+                        )}
+                      </div>
+
+                      {/* 2. Color Guide Reference Frame - Fixed at Bottom-Left */}
+                      {!isFullColorMode && (getPageImages(activePage)[0]?.url || activePage.illustrationUrl) && (
+                        <div 
+                          className="flex-none flex flex-col items-center bg-white p-1 rounded-xl border-2 border-purple-500 shadow-sm overflow-hidden"
+                          style={{ width: '3.6cm', height: '3.6cm', maxWidth: '4.5cm', maxHeight: '4.5cm' }}
+                          title={isAr ? 'دليل الصورة الملونة الأصلية (معاينة)' : 'Original Color Guide Reference'}
+                        >
+                          <div className="w-full bg-purple-600 text-white text-[8px] font-bold text-center py-0.5 rounded-t leading-none flex items-center justify-center gap-1 shadow-2xs shrink-0">
+                            <span>🎨</span>
+                            <span>{isAr ? 'دليل التلوين' : 'Color Guide'}</span>
+                          </div>
+                          <div className="w-full flex-1 flex items-center justify-center overflow-hidden p-0.5 bg-slate-50 rounded-b border-t border-purple-100 min-h-0">
+                            <img 
+                              src={getPageImages(activePage)[0]?.url || activePage.illustrationUrl} 
+                              alt="Original Color Guide" 
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-contain rounded"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
-
-                    {/* 2. Color Guide Reference Frame - Fixed at Bottom-Left (اسفل اليسار) */}
-                    {!isFullColorMode && (getPageImages(activePage)[0]?.url || activePage.illustrationUrl) && (
-                      <div 
-                        className="flex-none flex flex-col items-center bg-white p-1 rounded-xl border-2 border-purple-500 shadow-sm overflow-hidden"
-                        style={{ width: '3.6cm', height: '3.6cm', maxWidth: '4.5cm', maxHeight: '4.5cm' }}
-                        title={isAr ? 'دليل الصورة الملونة الأصلية (معاينة)' : 'Original Color Guide Reference'}
-                      >
-                        <div className="w-full bg-purple-600 text-white text-[8px] font-bold text-center py-0.5 rounded-t leading-none flex items-center justify-center gap-1 shadow-2xs shrink-0">
-                          <span>🎨</span>
-                          <span>{isAr ? 'دليل التلوين' : 'Color Guide'}</span>
-                        </div>
-                        <div className="w-full flex-1 flex items-center justify-center overflow-hidden p-0.5 bg-slate-50 rounded-b border-t border-purple-100 min-h-0">
-                          <img 
-                            src={getPageImages(activePage)[0]?.url || activePage.illustrationUrl} 
-                            alt="Original Color Guide" 
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-contain rounded"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  )}
                   </>
                   )}
 
@@ -1838,6 +1845,62 @@ export default function SimpleWorkspaceView() {
                             {isAr ? 'لا توجد صور في هذه الصفحة حالياً' : 'No images on this page yet.'}
                           </p>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Full Page Layout & Bleed Toggle Panel */}
+                    <div className="bg-white border border-indigo-200 p-4 rounded-2xl shadow-xs space-y-3">
+                      <h4 className="text-xs uppercase font-mono font-bold text-indigo-700 tracking-wider flex items-center justify-end gap-1.5 border-b border-indigo-100 pb-2">
+                        {isAr ? 'تنسيق هيكل الصفحة والطباعة' : 'Page Layout & Bleed Controls'}
+                        <Maximize2 className="w-3.5 h-3.5 text-indigo-600" />
+                      </h4>
+
+                      {/* Mode selection: Full Page (100%) vs Framed */}
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isCurrentlyFull = activePage.hidePageHeaderFooter && activePage.fullBleedImage;
+                            updatePageParam({
+                              hidePageHeaderFooter: !isCurrentlyFull,
+                              fullBleedImage: !isCurrentlyFull,
+                              topMargin: !isCurrentlyFull ? '0cm' : '1.5cm'
+                            });
+                            setTopMargin(!isCurrentlyFull ? '0cm' : '1.5cm');
+                          }}
+                          className={`w-full p-3 rounded-xl border text-right transition flex items-center justify-between gap-2 font-bold text-xs ${
+                            activePage.hidePageHeaderFooter && activePage.fullBleedImage
+                              ? 'bg-indigo-600 text-white border-indigo-700 shadow-md'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{activePage.hidePageHeaderFooter && activePage.fullBleedImage ? '✅' : '🖼️'}</span>
+                            <div className="text-right">
+                              <div>{isAr ? 'صفحة كاملة 100% (بدون هوامش أو هيدر إجباري)' : 'Full Page Bleed (100% Size)'}</div>
+                              <div className="text-[10px] font-normal opacity-80 mt-0.5">
+                                {isAr ? 'عرض الرسمة بالحجم الكامل وإلغاء صفحة داخل صفحة' : 'Full image view without nested borders'}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono font-bold bg-white/20 px-2 py-0.5 rounded">
+                            {activePage.hidePageHeaderFooter && activePage.fullBleedImage ? (isAr ? 'مفعل' : 'Active') : (isAr ? 'إطار' : 'Framed')}
+                          </span>
+                        </button>
+
+                        {/* Optional Activity / Coloring space checkbox */}
+                        <label className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100/80 cursor-pointer transition">
+                          <span className="text-xs font-bold text-slate-700 text-right flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                            {isAr ? 'إظهار مساحة التلوين والأنشطة أسفل الصفحة' : 'Show Bottom Practice / Coloring Box'}
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={!!activePage.showColoringActivityBox}
+                            onChange={(e) => updatePageParam({ showColoringActivityBox: e.target.checked })}
+                            className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500 border-slate-300"
+                          />
+                        </label>
                       </div>
                     </div>
 

@@ -191,6 +191,9 @@ export interface Page {
   extraTextColor?: string; // hex color for extra text
   extraTextPosition?: 'top' | 'middle' | 'bottom' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
   extraTextBgCard?: boolean; // card background for extra text
+  hidePageHeaderFooter?: boolean; // hide top header and bottom footer text
+  showColoringActivityBox?: boolean; // optional bottom practice box
+  fullBleedImage?: boolean; // whether image takes 100% full page without inner padding
 }
 
 export interface Asset {
