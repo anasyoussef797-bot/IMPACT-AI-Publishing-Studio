@@ -12,6 +12,7 @@ import { Page, LayoutType } from '../types';
 import { ActivityWorksheetView } from './ActivityWorksheetView';
 import { ActivityWorksheetEditor } from './ActivityWorksheetEditor';
 import { TextPageEditor } from './TextPageEditor';
+import RedactionOverlayLayer from './RedactionOverlayLayer';
 
 export default function BookComposerView() {
   const { t } = useTranslation();
@@ -456,6 +457,14 @@ export default function BookComposerView() {
                   borderColor: '#c5c2ba'
                 }}
               >
+                {/* Redaction / Shading Layer */}
+                <RedactionOverlayLayer
+                  blocks={activePage.redactionBlocks || []}
+                  onChange={(updated) => updatePage(activePage.id, { redactionBlocks: updated })}
+                  isEditing={false}
+                  isAr={true}
+                />
+
                 {/* Safe margin zone dashed bounding box */}
                 <div className="absolute inset-4 border border-dashed border-rose-300/40 pointer-events-none flex items-center justify-center">
                   <div className="absolute top-1 right-2 text-[8px] font-mono text-rose-300/70 select-none">{t('safe_margin_limits_guide')}</div>

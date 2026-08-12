@@ -10,7 +10,8 @@ import {
   BookOpen, Plus, Trash2, Printer, Sparkles, Image as ImageIcon, Upload, 
   ChevronLeft, ChevronRight, PenTool, Layout, Wand2, Type, Check,
   AlertCircle, Star, Palette, HelpCircle, ArrowLeftRight, Search, 
-  RefreshCw, Scissors, Settings, ExternalLink, FileUp, Move, ZoomIn, ZoomOut, Sliders, Maximize2, Layers, X
+  RefreshCw, Scissors, Settings, ExternalLink, FileUp, Move, ZoomIn, ZoomOut, Sliders, Maximize2, Layers, X,
+  EyeOff, Eraser, ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import PdfImportModal from './PdfImportModal';
@@ -19,6 +20,7 @@ import { ActivityWorksheetView } from './ActivityWorksheetView';
 import { ActivityWorksheetEditor } from './ActivityWorksheetEditor';
 import { TextPageEditor } from './TextPageEditor';
 import { ImageCropAndRemoveBgModal } from './ImageCropAndRemoveBgModal';
+import RedactionOverlayLayer from './RedactionOverlayLayer';
 
 export default function SimpleWorkspaceView() {
   const { t, isRtl, uiLanguage } = useTranslation();
@@ -101,6 +103,10 @@ export default function SimpleWorkspaceView() {
   // Typography Controls Sub-Tab
   const [textControlSubTab, setTextControlSubTab] = useState<'title' | 'story' | 'extra'>('title');
   
+  // Redaction / Shading Tool States
+  const [isRedactionToolActive, setIsRedactionToolActive] = useState(false);
+  const [activeRedactionColor, setActiveRedactionColor] = useState('#ffffff');
+
   // Book Metadata & Layout States (Arabic-first)
   const [customBookName, setCustomBookName] = useState('');
   const [platformName, setPlatformName] = useState('');
@@ -1025,7 +1031,7 @@ export default function SimpleWorkspaceView() {
         </div>
 
         {/* Center Column: Interactive Page Sheet Preview (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className="lg:col-span-5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs uppercase font-mono font-bold text-slate-400 tracking-wider">
               {isAr ? 'استعراض صفحة الرسم المباشرة:' : 'Live Sheet Preview:'}
@@ -1037,6 +1043,81 @@ export default function SimpleWorkspaceView() {
             )}
           </div>
 
+          {/* Redaction / Shading Control Bar */}
+          {activePage && (
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 shadow-md">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRedactionToolActive(!isRedactionToolActive)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs ${
+                    isRedactionToolActive
+                      ? 'bg-amber-400 text-slate-950 font-extrabold ring-2 ring-amber-300'
+                      : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700'
+                  }`}
+                  title={isAr ? 'تفعيل أداة تظليل وإخفاء الأسطر أو العناصر' : 'Toggle Redaction / Shading Tool'}
+                >
+                  <EyeOff className="w-4 h-4" />
+                  <span>{isRedactionToolActive ? (isAr ? 'أداة التظليل نشطة (انقر للإلغاء)' : 'Redaction Active') : (isAr ? 'أداة التظليل والإخفاء' : 'Redaction Tool')}</span>
+                </button>
+
+                {isRedactionToolActive && (
+                  <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[10px]">
+                    <span className="text-slate-400 font-bold px-1">{isAr ? 'اللون:' : 'Color:'}</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveRedactionColor('#ffffff')}
+                      className={`px-2 py-0.5 rounded font-bold border ${
+                        activeRedactionColor === '#ffffff' ? 'bg-white text-slate-900 border-white font-extrabold' : 'bg-slate-800 text-slate-300 border-slate-700'
+                      }`}
+                    >
+                      ⚪ {isAr ? 'أبيض (إخفاء)' : 'White'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveRedactionColor('#000000')}
+                      className={`px-2 py-0.5 rounded font-bold border ${
+                        activeRedactionColor === '#000000' ? 'bg-slate-950 text-white border-slate-700 font-extrabold' : 'bg-slate-800 text-slate-300 border-slate-700'
+                      }`}
+                    >
+                      🖤 {isAr ? 'أسود' : 'Black'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveRedactionColor('#64748b')}
+                      className={`px-2 py-0.5 rounded font-bold border ${
+                        activeRedactionColor === '#64748b' ? 'bg-slate-600 text-white border-slate-500 font-extrabold' : 'bg-slate-800 text-slate-300 border-slate-700'
+                      }`}
+                    >
+                      🩶 {isAr ? 'رمادي' : 'Gray'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {activePage.redactionBlocks && activePage.redactionBlocks.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/80">
+                    🛡️ {activePage.redactionBlocks.length} {isAr ? 'تظليلاً' : 'shaded'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm(isAr ? 'هل تريد مسح جميع المظلات المضافة على هذه الصفحة؟' : 'Clear all redactions on this page?')) {
+                        updatePage(activePage.id, { redactionBlocks: [] });
+                      }
+                    }}
+                    className="px-2 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-800/80 rounded-lg text-[10px] font-bold transition flex items-center gap-1"
+                    title={isAr ? 'حذف جميع المظلات من هذه الصفحة' : 'Clear all redactions'}
+                  >
+                    <Eraser className="w-3 h-3" />
+                    <span>{isAr ? 'مسح الكل' : 'Clear All'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {activePage ? (
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 relative shadow-2xl flex flex-col items-center justify-center">
               
@@ -1047,6 +1128,15 @@ export default function SimpleWorkspaceView() {
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
                 }}
               >
+                {/* Redaction / Shading Interactive Layer */}
+                <RedactionOverlayLayer
+                  blocks={activePage.redactionBlocks || []}
+                  onChange={(updatedBlocks) => updatePage(activePage.id, { redactionBlocks: updatedBlocks })}
+                  isEditing={isRedactionToolActive}
+                  activeColor={activeRedactionColor}
+                  isAr={isAr}
+                />
+
                 {/* Safe margin zone dashed bounding box */}
                 <div className="absolute inset-4 border border-dashed border-rose-300/30 pointer-events-none flex items-center justify-center">
                   <span className="absolute top-1 left-2 text-[8px] font-mono text-rose-300/40 select-none">حدود الأمان (Safe Zone)</span>

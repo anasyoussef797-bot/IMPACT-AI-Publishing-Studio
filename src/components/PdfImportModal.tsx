@@ -102,7 +102,8 @@ export default function PdfImportModal({ isOpen, onClose }: PdfImportModalProps)
       margin: 10,
       nurseryLogoUrl,
       institutionLogoUrl,
-      platformName
+      platformName,
+      designMode: 'fullcolor'
     });
 
     // 2. Map parsed PDF pages into store pages
@@ -110,7 +111,7 @@ export default function PdfImportModal({ isOpen, onClose }: PdfImportModalProps)
       id: `imported-pdf-page-${index + 1}-${Date.now()}`,
       pageNumber: index + 1,
       title: `صفحة ${index + 1}`,
-      layoutType: 'coloring' as const,
+      layoutType: 'full-illustration' as const,
       illustrationUrl: p.imageDataUrl,
       textContent: '',
       colorsUsed: ['#e11d48', '#2563eb', '#16a34a', '#ca8a04', '#ea580c'],

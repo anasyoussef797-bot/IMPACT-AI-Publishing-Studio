@@ -135,6 +135,16 @@ export interface PageImageItem {
   isWatermark?: boolean; // Whether placed as background watermark behind text
 }
 
+export interface RedactionBlock {
+  id: string;
+  x: number; // percentage 0 - 100
+  y: number; // percentage 0 - 100
+  width: number; // percentage 0 - 100
+  height: number; // percentage 0 - 100
+  color?: string; // hex color e.g. '#ffffff' (whiteout) or '#000000' (blackout) or '#64748b' (slate shading)
+  label?: string;
+}
+
 export interface Page {
   id: string;
   pageNumber: number;
@@ -146,6 +156,7 @@ export interface Page {
   illustrationAssetId?: string;
   illustrationUrl?: string;
   pageImages?: PageImageItem[];
+  redactionBlocks?: RedactionBlock[];
   activity?: PageActivity;
   activityWorksheet?: ActivityWorksheetConfig;
   textPageTheme?: 'clean' | 'warm-cream' | 'pastel-blue' | 'framed' | 'storybook';
