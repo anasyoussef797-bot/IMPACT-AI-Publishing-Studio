@@ -103,6 +103,8 @@ const SAMPLE_BOOKS: Book[] = [
       margin: 0.5,
       coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=400',
       themeColor: '#1e3a8a',
+      platformName: 'IMPACT HUB EGYPT',
+      nurseryName: '',
     },
     chapters: [
       {
@@ -366,7 +368,10 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
       id: `book-${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      metadata,
+      metadata: {
+        ...metadata,
+        platformName: metadata.platformName || 'IMPACT HUB EGYPT',
+      },
       chapters: [],
       pages: [],
       assets: [],

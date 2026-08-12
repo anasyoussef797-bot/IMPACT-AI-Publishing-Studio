@@ -113,7 +113,8 @@ export default function SimpleWorkspaceView() {
 
   // Book Metadata & Layout States (Arabic-first)
   const [customBookName, setCustomBookName] = useState('');
-  const [platformName, setPlatformName] = useState('');
+  const [platformName, setPlatformName] = useState('IMPACT HUB EGYPT');
+  const [nurseryName, setNurseryName] = useState('');
   const [institutionLogoUrl, setInstitutionLogoUrl] = useState('');
   const [nurseryLogoUrl, setNurseryLogoUrl] = useState('');
   const [targetPages, setTargetPages] = useState(72);
@@ -173,7 +174,8 @@ export default function SimpleWorkspaceView() {
   useEffect(() => {
     if (currentBook) {
       setCustomBookName(currentBook.metadata.customBookName || currentBook.metadata.title || '');
-      setPlatformName(currentBook.metadata.platformName || '');
+      setPlatformName(currentBook.metadata.platformName || 'IMPACT HUB EGYPT');
+      setNurseryName(currentBook.metadata.nurseryName || '');
       setInstitutionLogoUrl(currentBook.metadata.institutionLogoUrl || '');
       setNurseryLogoUrl(currentBook.metadata.nurseryLogoUrl || '');
       setTargetPages(currentBook.metadata.targetPages || 72);
@@ -858,7 +860,8 @@ export default function SimpleWorkspaceView() {
 
     updateBookMetadata({
       customBookName,
-      platformName,
+      platformName: platformName || 'IMPACT HUB EGYPT',
+      nurseryName,
       institutionLogoUrl,
       nurseryLogoUrl,
       targetPages: Number(targetPages),
@@ -1266,7 +1269,7 @@ export default function SimpleWorkspaceView() {
                 {/* Real-time Fixed Footer (shows only if headers/footers are enabled) */}
                 {!activePage.hidePageHeaderFooter && (
                   <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[9px] font-bold text-slate-400 select-none" dir="rtl">
-                    <span>🌟 {platformName || (isAr ? 'منصة التعليم والنشاط' : 'Smart Kids Platform')}</span>
+                    <span>🌟 {nurseryName ? `${nurseryName} • ` : ''}{platformName || 'IMPACT HUB EGYPT'}</span>
                     <span className="font-mono text-xs">{activePage.pageNumber}</span>
                   </div>
                 )}
@@ -3045,7 +3048,20 @@ export default function SimpleWorkspaceView() {
                       type="text"
                       value={platformName}
                       onChange={(e) => setPlatformName(e.target.value)}
-                      placeholder={isAr ? 'مثال: منصة أقرأ التعليمية' : 'Platform name...'}
+                      placeholder="IMPACT HUB EGYPT"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden text-right"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1">
+                      {isAr ? 'اسم الحضانة:' : 'Nursery Name:'}
+                    </label>
+                    <input
+                      type="text"
+                      value={nurseryName}
+                      onChange={(e) => setNurseryName(e.target.value)}
+                      placeholder={isAr ? 'مثال: حضانة رواد المستقبل' : 'Nursery name...'}
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50/50 focus:outline-hidden text-right"
                     />
                   </div>

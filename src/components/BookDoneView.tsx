@@ -61,7 +61,7 @@ export default function BookDoneView() {
       <div class="print-page cover-page" dir="${isRtl ? 'rtl' : 'ltr'}">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-top: 20px;">
           <p style="font-size: 16px; color: #0f172a; text-transform: uppercase; font-weight: bold; letter-spacing: 2px; margin: 0;">
-            ${currentBook.metadata.platformName || 'IMPACT Publishing Studio'}
+            ${currentBook.metadata.platformName || 'IMPACT HUB EGYPT'}
           </p>
           ${currentBook.metadata.nurseryLogoUrl ? `
             <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 2.8cm; max-width: 7cm; object-fit: contain;" alt="شعار الروضة" />
@@ -87,7 +87,7 @@ export default function BookDoneView() {
             ${currentBook.metadata.institutionLogoUrl ? `
               <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 2cm; max-width: 4.5cm; object-fit: contain;" alt="شعار المؤسسة" />
             ` : ''}
-            <span style="font-weight: 700; color: #334155; align-self: center;">${currentBook.metadata.platformName || 'منصة أقرأ التعليمية'}</span>
+            <span style="font-weight: 700; color: #334155; align-self: center;">${currentBook.metadata.nurseryName ? `${currentBook.metadata.nurseryName} - ` : ''}${currentBook.metadata.platformName || 'IMPACT HUB EGYPT'}</span>
           </div>
           <div>
             <span>المرحلة العمرية: ${currentBook.metadata.targetAge || '3 - 8 سنوات'} | المقاس: ${currentBook.metadata.paperSize || 'A4'}</span>
@@ -262,7 +262,7 @@ export default function BookDoneView() {
             ${currentBook.metadata.institutionLogoUrl ? `
               <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 1.8cm; max-width: 4cm; object-fit: contain;" crossOrigin="anonymous" alt="شعار المؤسسة" />
             ` : ''}
-            <span style="font-weight: 800; color: #334155; align-self: center;">${currentBook.metadata.platformName || 'منصة أقرأ التعليمية'}</span>
+            <span style="font-weight: 800; color: #334155; align-self: center;">${currentBook.metadata.nurseryName ? `${currentBook.metadata.nurseryName} • ` : ''}${currentBook.metadata.platformName || 'IMPACT HUB EGYPT'}</span>
           </div>
 
           <div style="font-weight: 600; color: #64748b;">
@@ -375,7 +375,7 @@ export default function BookDoneView() {
       const coverHtml = `
         <div class="pdf-page" style="width: 794px; height: 1123px; padding: 50px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-top: 20px;">
-            <p style="font-size: 16px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase;">${currentBook.metadata.platformName || 'IMPACT Publishing Studio'}</p>
+            <p style="font-size: 16px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase;">${currentBook.metadata.platformName || 'IMPACT HUB EGYPT'}</p>
             ${currentBook.metadata.nurseryLogoUrl ? `
               <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 90px; max-width: 250px; object-fit: contain;" alt="شعار الروضة" />
             ` : ''}
@@ -396,7 +396,7 @@ export default function BookDoneView() {
               ${currentBook.metadata.institutionLogoUrl ? `
                 <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 60px; max-width: 180px; object-fit: contain;" alt="شعار المؤسسة" />
               ` : ''}
-              <span style="color: #cbd5e1; font-weight: bold;">${currentBook.metadata.platformName || 'منصة أقرأ التعليمية'}</span>
+              <span style="color: #cbd5e1; font-weight: bold;">${currentBook.metadata.nurseryName ? `${currentBook.metadata.nurseryName} - ` : ''}${currentBook.metadata.platformName || 'IMPACT HUB EGYPT'}</span>
             </div>
             <span>المرحلة العمرية: ${currentBook.metadata.targetAge || '3 - 8 سنوات'} | المقاس: ${currentBook.metadata.paperSize || 'A4'}</span>
           </div>
@@ -614,7 +614,7 @@ export default function BookDoneView() {
               ${currentBook.metadata.institutionLogoUrl ? `
                 <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 60px; max-width: 160px; object-fit: contain;" crossOrigin="anonymous" alt="شعار المؤسسة" />
               ` : ''}
-              <span style="font-weight: 800; color: #334155; align-self: center;">${currentBook.metadata.platformName || 'منصة أقرأ التعليمية'}</span>
+              <span style="font-weight: 800; color: #334155; align-self: center;">${currentBook.metadata.nurseryName ? `${currentBook.metadata.nurseryName} • ` : ''}${currentBook.metadata.platformName || 'IMPACT HUB EGYPT'}</span>
             </div>
 
             <div style="font-weight: 600; color: #64748b;">
@@ -685,8 +685,8 @@ export default function BookDoneView() {
   const handleDownloadCurriculumDoc = () => {
     const docText = `=====================================================
 مستند مطابقة المنهج والاعتماد التعليمي
-المنصة: ${currentBook.metadata.platformName || 'منصة التعليم والتلوين الذكية'}
-الكتاب: ${currentBook.metadata.title}
+المنصة: ${currentBook.metadata.platformName || 'IMPACT HUB EGYPT'}
+${currentBook.metadata.nurseryName ? `الحضانة: ${currentBook.metadata.nurseryName}\n` : ''}الكتاب: ${currentBook.metadata.title}
 تاريخ الاعتماد: ${new Date().toLocaleDateString('ar-EG')}
 =====================================================
 

@@ -44,6 +44,7 @@ export interface BookMetadata {
   targetPages?: number;
   customBookName?: string;
   platformName?: string;
+  nurseryName?: string;
   institutionLogoUrl?: string;
   nurseryLogoUrl?: string;
   paperSize?: 'A4' | 'A3' | 'Letter' | 'Custom';

@@ -20,9 +20,10 @@ export default function PdfImportModal({ isOpen, onClose }: PdfImportModalProps)
 
   // Metadata overrides for imported book
   const [customBookName, setCustomBookName] = useState('');
+  const [nurseryName, setNurseryName] = useState('');
   const [nurseryLogoUrl, setNurseryLogoUrl] = useState('');
   const [institutionLogoUrl, setInstitutionLogoUrl] = useState('');
-  const [platformName, setPlatformName] = useState('منصة أقرأ التعليمية');
+  const [platformName, setPlatformName] = useState('IMPACT HUB EGYPT');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nurseryLogoRef = useRef<HTMLInputElement>(null);
@@ -102,7 +103,8 @@ export default function PdfImportModal({ isOpen, onClose }: PdfImportModalProps)
       margin: 10,
       nurseryLogoUrl,
       institutionLogoUrl,
-      platformName,
+      platformName: platformName || 'IMPACT HUB EGYPT',
+      nurseryName,
       designMode: 'fullcolor'
     });
 
@@ -319,7 +321,21 @@ export default function PdfImportModal({ isOpen, onClose }: PdfImportModalProps)
                     type="text"
                     value={platformName}
                     onChange={(e) => setPlatformName(e.target.value)}
-                    placeholder={isAr ? 'اسم دار النشر...' : 'Publisher name...'}
+                    placeholder="IMPACT HUB EGYPT"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white focus:outline-hidden text-right"
+                  />
+                </div>
+
+                {/* 5. Nursery Name */}
+                <div>
+                  <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">
+                    {isAr ? 'اسم الحضانة:' : 'Nursery Name:'}
+                  </label>
+                  <input
+                    type="text"
+                    value={nurseryName}
+                    onChange={(e) => setNurseryName(e.target.value)}
+                    placeholder={isAr ? 'مثال: حضانة رواد المستقبل' : 'Nursery name...'}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white focus:outline-hidden text-right"
                   />
                 </div>
