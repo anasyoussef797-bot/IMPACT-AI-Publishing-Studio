@@ -114,6 +114,18 @@ export default function BookDoneView() {
               <div style="position: absolute; left: ${b.x}%; top: ${b.y}%; width: ${b.width}%; height: ${b.height}%; background-color: ${b.color || '#ffffff'}; z-index: 30; pointer-events: none;"></div>
             `).join('')}
 
+            ${currentBook.metadata.nurseryLogoUrl ? `
+              <div style="position: absolute; top: 12px; left: 16px; z-index: 25; pointer-events: none;">
+                <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 2.2cm; max-width: 5.5cm; object-fit: contain;" crossOrigin="anonymous" alt="شعار الحضانة" />
+              </div>
+            ` : ''}
+
+            ${currentBook.metadata.institutionLogoUrl ? `
+              <div style="position: absolute; bottom: 12px; left: 16px; z-index: 25; pointer-events: none;">
+                <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 1.6cm; max-width: 4.5cm; object-fit: contain;" crossOrigin="anonymous" alt="شعار المؤسسة" />
+              </div>
+            ` : ''}
+
             ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `
               <div style="position: absolute; ${
                 p.titlePosition === 'top-right' ? 'top: 15px; right: 15px;' :
@@ -407,6 +419,18 @@ export default function BookDoneView() {
               ${(p.redactionBlocks || []).map(b => `
                 <div style="position: absolute; left: ${b.x}%; top: ${b.y}%; width: ${b.width}%; height: ${b.height}%; background-color: ${b.color || '#ffffff'}; z-index: 30;"></div>
               `).join('')}
+
+              ${currentBook.metadata.nurseryLogoUrl ? `
+                <div style="position: absolute; top: 16px; left: 20px; z-index: 25; pointer-events: none;">
+                  <img src="${currentBook.metadata.nurseryLogoUrl}" style="max-height: 85px; max-width: 220px; object-fit: contain;" crossOrigin="anonymous" alt="شعار الحضانة" />
+                </div>
+              ` : ''}
+
+              ${currentBook.metadata.institutionLogoUrl ? `
+                <div style="position: absolute; bottom: 16px; left: 20px; z-index: 25; pointer-events: none;">
+                  <img src="${currentBook.metadata.institutionLogoUrl}" style="max-height: 60px; max-width: 170px; object-fit: contain;" crossOrigin="anonymous" alt="شعار المؤسسة" />
+                </div>
+              ` : ''}
 
               ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `
                 <div style="position: absolute; ${

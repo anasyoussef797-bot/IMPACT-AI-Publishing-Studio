@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import { Book, WorkflowStage, BookMetadata, Chapter, Page, Asset, QualityReport, BookType, BookLanguage } from '../types';
+import { Book, WorkflowStage, BookMetadata, Chapter, Page, Asset, QualityReport, BookType, BookLanguage, RedactionBlock } from '../types';
 import { createDefaultActivityWorksheet, createDefaultTextPageProps } from '../utils/defaultActivityTemplates';
 
 interface PublishingState {
@@ -53,6 +53,7 @@ interface PublishingState {
   addTextPage: () => void;
   addActivityPage: () => void;
   updatePage: (pageId: string, updates: Partial<Page>) => void;
+  applyRedactionToAllPages: (sourceBlocks: RedactionBlock[]) => void;
   deletePage: (pageId: string) => void;
   addAssetToBook: (asset: Asset) => void;
   generatePageAsset: (pageId: string, prompt: string, type: 'image' | 'illustration' | 'coloring') => Promise<void>;
@@ -686,6 +687,28 @@ export const usePublishingStore = create<PublishingState>((set, get) => ({
       const updatedPages = state.currentBook.pages.map(p => 
         p.id === pageId ? { ...p, ...updates } : p
       );
+      const updatedBook: Book = {
+        ...state.currentBook,
+        pages: updatedPages,
+        updatedAt: new Date().toISOString()
+      };
+      return {
+        currentBook: updatedBook,
+        booksList: state.booksList.map(b => b.id === updatedBook.id ? updatedBook : b)
+      };
+    });
+  },
+
+  applyRedactionToAllPages: (sourceBlocks) => {
+    set((state) => {
+      if (!state.currentBook) return {};
+      const updatedPages = state.currentBook.pages.map(p => ({
+        ...p,
+        redactionBlocks: sourceBlocks.map((b, idx) => ({
+          ...b,
+          id: `redact-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`
+        }))
+      }));
       const updatedBook: Book = {
         ...state.currentBook,
         pages: updatedPages,

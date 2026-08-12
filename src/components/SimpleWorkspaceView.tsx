@@ -11,7 +11,7 @@ import {
   ChevronLeft, ChevronRight, PenTool, Layout, Wand2, Type, Check,
   AlertCircle, Star, Palette, HelpCircle, ArrowLeftRight, Search, 
   RefreshCw, Scissors, Settings, ExternalLink, FileUp, Move, ZoomIn, ZoomOut, Sliders, Maximize2, Layers, X,
-  EyeOff, Eraser, ShieldAlert
+  EyeOff, Eraser, ShieldAlert, Copy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import PdfImportModal from './PdfImportModal';
@@ -38,11 +38,15 @@ export default function SimpleWorkspaceView() {
     synthesizePrintPackage,
     addNotification,
     setProfessionalMode,
-    updateBookMetadata
+    updateBookMetadata,
+    applyRedactionToAllPages
   } = usePublishingStore();
 
   // Selected Page State
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  
+  // Auto sync redactions state
+  const [autoSyncRedactions, setAutoSyncRedactions] = useState(false);
   
   // Tabs State (page customization vs book/print settings)
   const [activeConfigTab, setActiveConfigTab] = useState<'page' | 'book'>('page');
@@ -1096,10 +1100,42 @@ export default function SimpleWorkspaceView() {
               </div>
 
               {activePage.redactionBlocks && activePage.redactionBlocks.length > 0 && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/80">
                     🛡️ {activePage.redactionBlocks.length} {isAr ? 'تظليلاً' : 'shaded'}
                   </span>
+
+                  {/* Apply To All Pages Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      applyRedactionToAllPages(activePage.redactionBlocks || []);
+                      addNotification('success', isAr ? 'تم نسخ وتطبيق التظليل الحالي على كافة صفحات الكتاب بنجاح!' : 'Redaction applied to all pages!');
+                    }}
+                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 rounded-lg text-[10px] font-bold transition flex items-center gap-1 shadow-xs"
+                    title={isAr ? 'تطبيق نفس التظليل والتغطية على كل صفحات الكتاب توفيراً للوقت' : 'Apply same redaction to all pages'}
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>{isAr ? 'تطبيق على كل الصفحات' : 'Apply to All Pages'}</span>
+                  </button>
+
+                  {/* Auto-sync Switch */}
+                  <label className="flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-slate-900/90 px-2 py-0.5 rounded-lg border border-amber-500/30 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={autoSyncRedactions}
+                      onChange={(e) => {
+                        setAutoSyncRedactions(e.target.checked);
+                        if (e.target.checked && activePage.redactionBlocks && activePage.redactionBlocks.length > 0) {
+                          applyRedactionToAllPages(activePage.redactionBlocks);
+                          addNotification('info', isAr ? 'تم تفعيل المزامنة التلقائية للتظليل على كل الصفحات' : 'Auto-sync redaction enabled');
+                        }
+                      }}
+                      className="w-3 h-3 text-indigo-600 rounded focus:ring-indigo-500 border-slate-700"
+                    />
+                    <span>{isAr ? '⚡ مزامنة تلقائية' : 'Auto-sync'}</span>
+                  </label>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -1131,7 +1167,12 @@ export default function SimpleWorkspaceView() {
                 {/* Redaction / Shading Interactive Layer */}
                 <RedactionOverlayLayer
                   blocks={activePage.redactionBlocks || []}
-                  onChange={(updatedBlocks) => updatePage(activePage.id, { redactionBlocks: updatedBlocks })}
+                  onChange={(updatedBlocks) => {
+                    updatePage(activePage.id, { redactionBlocks: updatedBlocks });
+                    if (autoSyncRedactions) {
+                      applyRedactionToAllPages(updatedBlocks);
+                    }
+                  }}
                   isEditing={isRedactionToolActive}
                   activeColor={activeRedactionColor}
                   isAr={isAr}
@@ -1146,6 +1187,30 @@ export default function SimpleWorkspaceView() {
                 <div className="absolute inset-2 border border-dashed border-cyan-400/20 pointer-events-none">
                   <span className="absolute bottom-1 right-2 text-[8px] font-mono text-cyan-400/30 select-none">هامش القص (Bleed Limits)</span>
                 </div>
+
+                {/* Nursery Logo Overlay on canvas */}
+                {(nurseryLogoUrl || currentBook?.metadata?.nurseryLogoUrl) && (
+                  <div className="absolute top-2 left-3 z-20 pointer-events-none max-w-[90px] max-h-[40px] flex items-center justify-start">
+                    <img 
+                      src={nurseryLogoUrl || currentBook?.metadata?.nurseryLogoUrl} 
+                      alt="شعار الحضانة" 
+                      className="max-w-full max-h-[40px] object-contain drop-shadow-xs" 
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                )}
+
+                {/* Institution Logo Overlay on canvas */}
+                {(institutionLogoUrl || currentBook?.metadata?.institutionLogoUrl) && (
+                  <div className="absolute bottom-2 left-3 z-20 pointer-events-none max-w-[80px] max-h-[35px] flex items-center justify-start">
+                    <img 
+                      src={institutionLogoUrl || currentBook?.metadata?.institutionLogoUrl} 
+                      alt="شعار المؤسسة" 
+                      className="max-w-full max-h-[35px] object-contain drop-shadow-xs" 
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                )}
 
                 {/* Real-time Fixed Header (shows only if headers are enabled) */}
                 {!activePage.hidePageHeaderFooter && (
