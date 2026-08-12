@@ -147,15 +147,15 @@ export default function BookDoneView() {
       <div class="print-page" dir="${isRtl ? 'rtl' : 'ltr'}">
         
         <!-- Header: Top Right = Colored Ref (<= 6cm) [only in coloring mode], Top Center = Title & Badge, Top Left = Nursery Logo -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; ${p.showPageFrame ? 'border-bottom: 2px solid #e2e8f0;' : ''} padding-bottom: 8px; margin-bottom: 12px; height: ${isFullColor ? '2.8cm' : '6.2cm'};">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; ${p.showPageFrame ? 'border-bottom: 2px solid #e2e8f0;' : ''} padding-bottom: 6px; margin-bottom: 8px; min-height: ${isFullColor || p.showColorGuide === false ? '2.0cm' : '3.6cm'};">
           
           <!-- Top Right: Small Colored Reference Thumbnail (<= 6cm height) -->
-          <div style="display: flex; flex-direction: column; align-items: flex-start; width: 6cm; flex-shrink: 0;">
+          <div style="display: flex; flex-direction: column; align-items: flex-start; width: ${p.colorGuideSize === 'small' ? '2.8cm' : p.colorGuideSize === 'large' ? '4.8cm' : '3.6cm'}; flex-shrink: 0;">
             ${p.illustrationUrl && !isFullColor && p.showColorGuide !== false ? `
               <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                <img src="${p.illustrationUrl}" style="max-height: 5.2cm; max-width: 5.5cm; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
+                <img src="${p.illustrationUrl}" style="max-height: ${p.colorGuideSize === 'small' ? '2.5cm' : p.colorGuideSize === 'large' ? '4.2cm' : '3.2cm'}; max-width: 100%; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
               </div>
-              <span style="font-size: 9px; font-weight: bold; color: #64748b; margin-top: 3px;">🎨 ${isAr ? 'دليل التلوين' : 'Color Guide'}</span>
+              <span style="font-size: 8px; font-weight: bold; color: #64748b; margin-top: 2px;">🎨 ${isAr ? 'دليل التلوين' : 'Color Guide'}</span>
             ` : ''}
           </div>
 
@@ -182,10 +182,10 @@ export default function BookDoneView() {
 
           <!-- Center Black & White Outline Image or Full Color Image with Overlay support -->
           ${p.illustrationUrl ? `
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 6px 0; position: relative;">
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 4px 0; position: relative; overflow: hidden;">
               <img 
                 src="${outlineImages[idx] || p.illustrationUrl}" 
-                style="max-height: ${isFullColor ? '17.5cm' : '13.5cm'}; max-width: 17.5cm; object-fit: contain; display: block;" 
+                style="max-height: 22cm; max-width: 19.5cm; width: 100%; height: 100%; object-fit: contain; display: block; transform: scale(${(p.imageScale ?? 100) / 100}) scale(${(p.imageScaleX ?? 100) / 100}, ${(p.imageScaleY ?? 100) / 100}) translate(${p.imageOffsetX ?? 0}px, ${p.imageOffsetY ?? 0}px); transform-origin: center center;" 
                 crossOrigin="anonymous" 
                 alt="رسمة التلوين" 
               />
@@ -455,14 +455,14 @@ export default function BookDoneView() {
         <div class="pdf-page" style="width: 794px; height: 1123px; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: #ffffff; color: #0f172a; ${p.showPageFrame ? 'border: 1px solid #e2e8f0;' : ''}">
           
           <!-- Header Area -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; ${p.showPageFrame ? 'border-bottom: 2px solid #e2e8f0;' : ''} padding-bottom: 8px; height: ${isFullColor ? '100px' : '210px'};">
-            <!-- Top Right: Colored Reference Image (max height 210px / <= 6cm) [only in coloring mode] -->
-            <div style="display: flex; flex-direction: column; align-items: flex-start; width: 210px; flex-shrink: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; ${p.showPageFrame ? 'border-bottom: 2px solid #e2e8f0;' : ''} padding-bottom: 6px; min-height: ${isFullColor || p.showColorGuide === false ? '70px' : '130px'};">
+            <!-- Top Right: Colored Reference Image [only in coloring mode] -->
+            <div style="display: flex; flex-direction: column; align-items: flex-start; width: ${p.colorGuideSize === 'small' ? '120px' : p.colorGuideSize === 'large' ? '190px' : '150px'}; flex-shrink: 0;">
               ${p.illustrationUrl && !isFullColor && p.showColorGuide !== false ? `
                 <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                  <img src="${p.illustrationUrl}" style="max-height: 180px; max-width: 200px; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
+                  <img src="${p.illustrationUrl}" style="max-height: ${p.colorGuideSize === 'small' ? '100px' : p.colorGuideSize === 'large' ? '160px' : '125px'}; max-width: 100%; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
                 </div>
-                <span style="font-size: 10px; font-weight: bold; color: #64748b; margin-top: 3px;">🎨 ${isAr ? 'دليل التلوين' : 'Color Guide'}</span>
+                <span style="font-size: 9px; font-weight: bold; color: #64748b; margin-top: 2px;">🎨 ${isAr ? 'دليل التلوين' : 'Color Guide'}</span>
               ` : ''}
             </div>
 
@@ -533,10 +533,10 @@ export default function BookDoneView() {
 
               <!-- Center Image (Outline or Full Color) with Overlay support -->
               ${p.illustrationUrl ? `
-                <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 8px 0; position: relative;">
+                <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 4px 0; position: relative; overflow: hidden;">
                   <img 
                     src="${outlineImages[idx] || p.illustrationUrl}" 
-                    style="max-height: ${isFullColor ? '650px' : '520px'}; max-width: 680px; object-fit: contain; display: block;" 
+                    style="max-height: 820px; max-width: 730px; width: 100%; height: 100%; object-fit: contain; display: block; transform: scale(${(p.imageScale ?? 100) / 100}) scale(${(p.imageScaleX ?? 100) / 100}, ${(p.imageScaleY ?? 100) / 100}) translate(${p.imageOffsetX ?? 0}px, ${p.imageOffsetY ?? 0}px); transform-origin: center center;" 
                     crossOrigin="anonymous" 
                     alt="رسمة التلوين" 
                   />
