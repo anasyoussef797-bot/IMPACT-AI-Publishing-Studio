@@ -10,7 +10,7 @@ import { CheckCircle, Award, FileText, Download, Printer, ArrowRight, ArrowLeft,
 import { motion } from 'motion/react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { generateColoringOutline } from '../utils/imageOutline';
+import { generateColoringOutline, applyRedactionsToImage } from '../utils/imageOutline';
 
 export default function BookDoneView() {
   const { t, isRtl, uiLanguage } = useTranslation();
@@ -29,15 +29,17 @@ export default function BookDoneView() {
       : (isAr ? 'جاري تحويل الرسومات إلى أوتلاين أسود وأبيض وتجهيز الطباعة...' : 'Converting images to black & white outlines for print...')
     );
 
-    // Convert all illustrations to true black & white outlines if coloring mode, or keep full color
+    // Convert all illustrations to true black & white outlines if coloring mode, or apply redactions for full color
     const outlineImages = await Promise.all(
       currentBook.pages.map(async (p) => {
         if (!p.illustrationUrl) return '';
-        if (isFullColor) return p.illustrationUrl;
+        if (isFullColor) {
+          return await applyRedactionsToImage(p.illustrationUrl, p.redactionBlocks || []);
+        }
         try {
-          return await generateColoringOutline(p.illustrationUrl, 35);
+          return await generateColoringOutline(p.illustrationUrl, 35, p.redactionBlocks || []);
         } catch {
-          return p.illustrationUrl;
+          return await applyRedactionsToImage(p.illustrationUrl, p.redactionBlocks || []);
         }
       })
     );
@@ -341,15 +343,17 @@ export default function BookDoneView() {
     );
 
     try {
-      // Convert all illustrations to real line-art black & white outline Data URLs if coloring, or keep original if fullcolor
+      // Convert all illustrations to real line-art black & white outline Data URLs if coloring, or apply redactions for fullcolor
       const outlineImages = await Promise.all(
         currentBook.pages.map(async (p) => {
           if (!p.illustrationUrl) return '';
-          if (isFullColor) return p.illustrationUrl;
+          if (isFullColor) {
+            return await applyRedactionsToImage(p.illustrationUrl, p.redactionBlocks || []);
+          }
           try {
-            return await generateColoringOutline(p.illustrationUrl, 35);
+            return await generateColoringOutline(p.illustrationUrl, 35, p.redactionBlocks || []);
           } catch {
-            return p.illustrationUrl;
+            return await applyRedactionsToImage(p.illustrationUrl, p.redactionBlocks || []);
           }
         })
       );
@@ -536,6 +540,11 @@ export default function BookDoneView() {
                     crossOrigin="anonymous" 
                     alt="رسمة التلوين" 
                   />
+
+                  <!-- Redaction Blocks Overlay -->
+                  ${(p.redactionBlocks || []).map(b => `
+                    <div style="position: absolute; left: ${b.x}%; top: ${b.y}%; width: ${b.width}%; height: ${b.height}%; background-color: ${b.color || '#ffffff'}; z-index: 30;"></div>
+                  `).join('')}
 
                   <!-- Overlay Title -->
                   ${p.title && p.titlePosition && p.titlePosition !== 'top' && p.titlePosition !== 'bottom' ? `

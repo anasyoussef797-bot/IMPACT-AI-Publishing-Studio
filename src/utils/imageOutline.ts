@@ -1,8 +1,61 @@
+import { RedactionBlock } from '../types';
+
+/**
+ * Bakes redaction/shading blocks directly onto an image canvas and returns a Data URL.
+ */
+export async function applyRedactionsToImage(imageUrl: string, redactionBlocks: RedactionBlock[] = []): Promise<string> {
+  if (!imageUrl) return '';
+  if (!redactionBlocks || redactionBlocks.length === 0) return imageUrl;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const w = img.naturalWidth || img.width || 800;
+        const h = img.naturalHeight || img.height || 800;
+        canvas.width = w;
+        canvas.height = h;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(imageUrl);
+
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // Draw redaction blocks onto image canvas
+        redactionBlocks.forEach((b) => {
+          ctx.fillStyle = b.color || '#ffffff';
+          ctx.fillRect(
+            (b.x / 100) * w,
+            (b.y / 100) * h,
+            (b.width / 100) * w,
+            (b.height / 100) * h
+          );
+        });
+
+        resolve(canvas.toDataURL('image/png'));
+      } catch (e) {
+        console.warn('Failed to bake redactions to image:', e);
+        resolve(imageUrl);
+      }
+    };
+
+    img.onerror = () => resolve(imageUrl);
+    img.src = imageUrl;
+  });
+}
+
 /**
  * Converts a color image URL into a high-contrast black & white line-art outline Data URL.
- * Works seamlessly with html2canvas and direct window printing.
+ * Bakes any redaction blocks into the image beforehand to guarantee erased lines.
  */
-export async function generateColoringOutline(imageUrl: string, threshold = 35): Promise<string> {
+export async function generateColoringOutline(
+  imageUrl: string, 
+  threshold = 35,
+  redactionBlocks: RedactionBlock[] = []
+): Promise<string> {
   if (!imageUrl) return '';
 
   return new Promise((resolve) => {
@@ -21,6 +74,20 @@ export async function generateColoringOutline(imageUrl: string, threshold = 35):
         if (!ctx) return resolve(imageUrl);
 
         ctx.drawImage(img, 0, 0, w, h);
+
+        // Draw redaction blocks onto image canvas BEFORE edge detection
+        if (redactionBlocks && redactionBlocks.length > 0) {
+          redactionBlocks.forEach((b) => {
+            ctx.fillStyle = b.color || '#ffffff';
+            ctx.fillRect(
+              (b.x / 100) * w,
+              (b.y / 100) * h,
+              (b.width / 100) * w,
+              (b.height / 100) * h
+            );
+          });
+        }
+
         const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
 
