@@ -24,7 +24,7 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
   const [originalImage, setOriginalImage] = useState<string>('');
 
   // Crop Box state in percentage relative to image dimensions (0 to 100)
-  const [cropBox, setCropBox] = useState({ top: 10, left: 10, width: 80, height: 80 });
+  const [cropBox, setCropBox] = useState({ top: 0, left: 0, width: 100, height: 100 });
   const [aspectRatio, setAspectRatio] = useState<'free' | '1:1' | '4:3' | '16:9' | '3:4'>('free');
 
   // Background Removal options
@@ -40,7 +40,7 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
   // Dragging Crop Handles
   const [draggingHandle, setDraggingHandle] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; box: typeof cropBox }>({
-    x: 0, y: 0, box: { top: 10, left: 10, width: 80, height: 80 }
+    x: 0, y: 0, box: { top: 0, left: 0, width: 100, height: 100 }
   });
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -51,7 +51,7 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
     if (isOpen && imageUrl) {
       setOriginalImage(imageUrl);
       setWorkingImage(imageUrl);
-      setCropBox({ top: 5, left: 5, width: 90, height: 90 });
+      setCropBox({ top: 0, left: 0, width: 100, height: 100 });
       setRotationAngle(0);
       setBrightness(100);
       setContrast(100);
@@ -156,7 +156,7 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
   const handleApplyCrop = async () => {
     const croppedUrl = await processCrop(workingImage, cropBox);
     setWorkingImage(croppedUrl);
-    setCropBox({ top: 2, left: 2, width: 96, height: 96 });
+    setCropBox({ top: 0, left: 0, width: 100, height: 100 });
   };
 
   // Perform Background Removal (White / Light Colors to Transparent PNG)
@@ -307,8 +307,8 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
   // Save & Apply back to app
   const handleFinalSave = async () => {
     let resultImage = workingImage;
-    // If the crop box is active and was framed by the user (not standard full image frame)
-    if (activeTab === 'crop' && (cropBox.width < 96 || cropBox.height < 96 || cropBox.top > 3 || cropBox.left > 3)) {
+    // Only apply crop if user intentionally narrowed the crop frame away from full image
+    if (activeTab === 'crop' && (cropBox.width < 98 || cropBox.height < 98 || cropBox.top > 1 || cropBox.left > 1)) {
       resultImage = await processCrop(workingImage, cropBox);
     }
     onApply(resultImage);
@@ -356,12 +356,12 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
             {/* Transparent Checkered Pattern Container */}
             <div 
               ref={containerRef}
-              className="relative max-w-full max-h-[480px] flex items-center justify-center rounded-xl overflow-hidden shadow-2xl border border-white/10 p-2"
+              className="relative max-w-full max-h-[500px] flex items-center justify-center rounded-2xl border border-white/10 p-5"
               style={{
                 backgroundImage: 'radial-gradient(#ffffff 15%, transparent 15%), radial-gradient(#ffffff 15%, transparent 15%)',
                 backgroundPosition: '0 0, 10px 10px',
                 backgroundSize: '20px 20px',
-                backgroundColor: '#1e293b'
+                backgroundColor: '#0f172a'
               }}
             >
               <div className="relative inline-block max-w-full max-h-[460px]">
@@ -369,7 +369,7 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
                   ref={imgRef}
                   src={workingImage}
                   alt="Image to edit"
-                  className="max-w-full max-h-[460px] object-contain pointer-events-none select-none block"
+                  className="max-w-full max-h-[460px] object-contain pointer-events-none select-none block rounded"
                 />
 
                 {/* Crop Box Overlay */}
@@ -469,9 +469,9 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
                     </label>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
-                        { id: 'free', labelAr: 'حر (Free)', labelEn: 'Free' },
+                        { id: 'free', labelAr: 'كامل الصورة (100%)', labelEn: 'Full Image (100%)' },
                         { id: '1:1', labelAr: 'مربع (1:1)', labelEn: '1:1 Square' },
-                        { id: '4:3', labelAr: '4:3 افقي', labelEn: '4:3 Landscape' },
+                        { id: '4:3', labelAr: '4:3 أفقّي', labelEn: '4:3 Landscape' },
                         { id: '3:4', labelAr: '3:4 طولي', labelEn: '3:4 Portrait' },
                       ].map((preset) => (
                         <button
@@ -479,10 +479,10 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
                           type="button"
                           onClick={() => {
                             setAspectRatio(preset.id as any);
-                            if (preset.id === '1:1') setCropBox({ top: 10, left: 10, width: 80, height: 80 });
-                            if (preset.id === '4:3') setCropBox({ top: 15, left: 5, width: 90, height: 67.5 });
-                            if (preset.id === '3:4') setCropBox({ top: 5, left: 15, width: 70, height: 90 });
-                            if (preset.id === 'free') setCropBox({ top: 5, left: 5, width: 90, height: 90 });
+                            if (preset.id === '1:1') setCropBox({ top: 5, left: 5, width: 90, height: 90 });
+                            if (preset.id === '4:3') setCropBox({ top: 12.5, left: 5, width: 90, height: 75 });
+                            if (preset.id === '3:4') setCropBox({ top: 5, left: 12.5, width: 75, height: 90 });
+                            if (preset.id === 'free') setCropBox({ top: 0, left: 0, width: 100, height: 100 });
                           }}
                           className={`py-2 px-2 text-xs font-bold rounded-xl border transition ${
                             aspectRatio === preset.id
@@ -495,6 +495,18 @@ export const ImageCropAndRemoveBgModal: React.FC<Props> = ({
                       ))}
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCropBox({ top: 0, left: 0, width: 100, height: 100 });
+                      setAspectRatio('free');
+                    }}
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-300"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
+                    {isAr ? '🔍 استعادة النطاق الكامل للصورة بدون قص (100%)' : 'Reset Frame to 100% Full Image'}
+                  </button>
 
                   <button
                     type="button"
