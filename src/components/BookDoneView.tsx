@@ -37,7 +37,7 @@ export default function BookDoneView() {
           return await applyRedactionsToImage(p.illustrationUrl, p.redactionBlocks || []);
         }
         try {
-          return await generateColoringOutline(p.illustrationUrl, 35, p.redactionBlocks || []);
+          return await generateColoringOutline(p.illustrationUrl, p.outlineThreshold || 35, p.redactionBlocks || []);
         } catch {
           return await applyRedactionsToImage(p.illustrationUrl, p.redactionBlocks || []);
         }
@@ -147,12 +147,12 @@ export default function BookDoneView() {
       <div class="print-page" dir="${isRtl ? 'rtl' : 'ltr'}">
         
         <!-- Header: Top Right = Colored Ref (<= 6cm) [only in coloring mode], Top Center = Title & Badge, Top Left = Nursery Logo -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; height: ${isFullColor ? '2.8cm' : '6.2cm'};">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; ${p.showPageFrame ? 'border-bottom: 2px solid #e2e8f0;' : ''} padding-bottom: 8px; margin-bottom: 12px; height: ${isFullColor ? '2.8cm' : '6.2cm'};">
           
           <!-- Top Right: Small Colored Reference Thumbnail (<= 6cm height) -->
           <div style="display: flex; flex-direction: column; align-items: flex-start; width: 6cm; flex-shrink: 0;">
-            ${p.illustrationUrl && !isFullColor ? `
-              <div style="border: 2px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+            ${p.illustrationUrl && !isFullColor && p.showColorGuide !== false ? `
+              <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
                 <img src="${p.illustrationUrl}" style="max-height: 5.2cm; max-width: 5.5cm; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
               </div>
               <span style="font-size: 9px; font-weight: bold; color: #64748b; margin-top: 3px;">🎨 ${isAr ? 'دليل التلوين' : 'Color Guide'}</span>
@@ -351,7 +351,7 @@ export default function BookDoneView() {
             return await applyRedactionsToImage(p.illustrationUrl, p.redactionBlocks || []);
           }
           try {
-            return await generateColoringOutline(p.illustrationUrl, 35, p.redactionBlocks || []);
+            return await generateColoringOutline(p.illustrationUrl, p.outlineThreshold || 35, p.redactionBlocks || []);
           } catch {
             return await applyRedactionsToImage(p.illustrationUrl, p.redactionBlocks || []);
           }
@@ -452,14 +452,14 @@ export default function BookDoneView() {
         }
 
         return `
-        <div class="pdf-page" style="width: 794px; height: 1123px; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0;">
+        <div class="pdf-page" style="width: 794px; height: 1123px; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; text-align: center; font-family: sans-serif; background: #ffffff; color: #0f172a; ${p.showPageFrame ? 'border: 1px solid #e2e8f0;' : ''}">
           
           <!-- Header Area -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; height: ${isFullColor ? '100px' : '210px'};">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; ${p.showPageFrame ? 'border-bottom: 2px solid #e2e8f0;' : ''} padding-bottom: 8px; height: ${isFullColor ? '100px' : '210px'};">
             <!-- Top Right: Colored Reference Image (max height 210px / <= 6cm) [only in coloring mode] -->
             <div style="display: flex; flex-direction: column; align-items: flex-start; width: 210px; flex-shrink: 0;">
-              ${p.illustrationUrl && !isFullColor ? `
-                <div style="border: 2px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+              ${p.illustrationUrl && !isFullColor && p.showColorGuide !== false ? `
+                <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 2px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
                   <img src="${p.illustrationUrl}" style="max-height: 180px; max-width: 200px; object-fit: contain; border-radius: 6px; display: block;" crossOrigin="anonymous" alt="دليل التلوين" />
                 </div>
                 <span style="font-size: 10px; font-weight: bold; color: #64748b; margin-top: 3px;">🎨 ${isAr ? 'دليل التلوين' : 'Color Guide'}</span>

@@ -194,6 +194,11 @@ export interface Page {
   hidePageHeaderFooter?: boolean; // hide top header and bottom footer text
   showColoringActivityBox?: boolean; // optional bottom practice box
   fullBleedImage?: boolean; // whether image takes 100% full page without inner padding
+  outlineThreshold?: number; // Line sensitivity / threshold for black line outline (5 - 100)
+  showColorGuide?: boolean; // Show mini colored reference model thumbnail in top right
+  colorGuideSize?: 'small' | 'medium' | 'large'; // Size of mini colored reference model
+  colorGuidePosition?: 'top-right' | 'top-left'; // Position of mini colored reference model
+  showPageFrame?: boolean; // Whether to display a border frame around the page (defaults to false for free page)
 }
 
 export interface Asset {

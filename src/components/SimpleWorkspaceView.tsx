@@ -160,6 +160,12 @@ export default function SimpleWorkspaceView() {
   const [outlineThreshold, setOutlineThreshold] = useState(40);
   const [useSmartOutline, setUseSmartOutline] = useState(true);
   
+  // Color guide & page frame options
+  const [showColorGuide, setShowColorGuide] = useState<boolean>(true);
+  const [colorGuideSize, setColorGuideSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [colorGuidePosition, setColorGuidePosition] = useState<'top-right' | 'top-left'>('top-right');
+  const [showPageFrame, setShowPageFrame] = useState<boolean>(false);
+  
   // Current active page's custom kid colors (default to standard crayon colors)
   const [colorsUsed, setColorsUsed] = useState<string[]>(['#e11d48', '#2563eb', '#16a34a', '#ca8a04', '#ea580c']);
 
@@ -239,6 +245,12 @@ export default function SimpleWorkspaceView() {
       setExtraTextColor(activePage.extraTextColor || '#2563eb');
       setExtraTextPosition(activePage.extraTextPosition || 'bottom');
       setExtraTextBgCard(activePage.extraTextBgCard || false);
+      
+      setOutlineThreshold(activePage.outlineThreshold ?? 40);
+      setShowColorGuide(activePage.showColorGuide ?? true);
+      setColorGuideSize(activePage.colorGuideSize ?? 'medium');
+      setColorGuidePosition(activePage.colorGuidePosition ?? 'top-right');
+      setShowPageFrame(activePage.showPageFrame ?? false);
       
       // Synchronize colors used
       if (activePage.colorsUsed && activePage.colorsUsed.length === 5) {
@@ -1159,7 +1171,9 @@ export default function SimpleWorkspaceView() {
               
               {/* Paper bounding container styled with standard cropping rulers */}
               <div 
-                className="bg-white rounded-lg shadow-2xl relative overflow-hidden transition-all duration-300 border-4 border-white aspect-[3/4] w-full max-w-[350px]"
+                className={`bg-white relative overflow-hidden transition-all duration-300 aspect-[3/4] w-full max-w-[350px] ${
+                  showPageFrame ? 'rounded-lg border-4 border-slate-200 shadow-2xl' : 'rounded-none border-0 shadow-2xl'
+                }`}
                 style={{
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
                 }}
@@ -1178,15 +1192,45 @@ export default function SimpleWorkspaceView() {
                   isAr={isAr}
                 />
 
-                {/* Safe margin zone dashed bounding box */}
-                <div className="absolute inset-4 border border-dashed border-rose-300/30 pointer-events-none flex items-center justify-center">
-                  <span className="absolute top-1 left-2 text-[8px] font-mono text-rose-300/40 select-none">حدود الأمان (Safe Zone)</span>
-                </div>
+                {/* Safe margin zone dashed bounding box (conditional) */}
+                {showPageFrame && (
+                  <>
+                    <div className="absolute inset-4 border border-dashed border-rose-300/30 pointer-events-none flex items-center justify-center">
+                      <span className="absolute top-1 left-2 text-[8px] font-mono text-rose-300/40 select-none">حدود الأمان (Safe Zone)</span>
+                    </div>
 
-                {/* Bleed line guide */}
-                <div className="absolute inset-2 border border-dashed border-cyan-400/20 pointer-events-none">
-                  <span className="absolute bottom-1 right-2 text-[8px] font-mono text-cyan-400/30 select-none">هامش القص (Bleed Limits)</span>
-                </div>
+                    <div className="absolute inset-2 border border-dashed border-cyan-400/20 pointer-events-none">
+                      <span className="absolute bottom-1 right-2 text-[8px] font-mono text-cyan-400/30 select-none">هامش القص (Bleed Limits)</span>
+                    </div>
+                  </>
+                )}
+
+                {/* TOP-RIGHT MINI COLORED REFERENCE THUMBNAIL (النموذج الملون المصغر في أعلى اليمين) */}
+                {(!isFullColorMode || activePage.layoutType === 'coloring') && showColorGuide && (getPageImages(activePage)[0]?.url || activePage.illustrationUrl) && (
+                  <div 
+                    className={`absolute z-30 flex flex-col items-center bg-white p-1 rounded-xl shadow-md border border-slate-200/90 pointer-events-auto transition-all hover:scale-105 ${
+                      colorGuidePosition === 'top-left' ? 'top-3 left-3' : 'top-3 right-3'
+                    }`}
+                    style={{
+                      width: colorGuideSize === 'small' ? '2.8cm' : colorGuideSize === 'large' ? '4.8cm' : '3.6cm',
+                      maxHeight: '4.8cm'
+                    }}
+                    title={isAr ? 'النموذج الملون المصغر (دليل التلوين)' : 'Miniature Colored Reference Model'}
+                  >
+                    <div className="w-full bg-slate-900 text-amber-300 text-[8px] font-bold text-center py-0.5 rounded-t leading-none flex items-center justify-center gap-1 shadow-2xs shrink-0">
+                      <span>🎨</span>
+                      <span>{isAr ? 'دليل التلوين' : 'Color Guide'}</span>
+                    </div>
+                    <div className="w-full flex-1 flex items-center justify-center overflow-hidden p-0.5 bg-slate-50 rounded-b min-h-0">
+                      <img 
+                        src={getPageImages(activePage)[0]?.url || activePage.illustrationUrl} 
+                        alt="Original Color Guide" 
+                        referrerPolicy="no-referrer"
+                        className="max-w-full max-h-full object-contain rounded"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Nursery Logo Overlay on canvas */}
                 {(nurseryLogoUrl || currentBook?.metadata?.nurseryLogoUrl) && (
@@ -1384,7 +1428,7 @@ export default function SimpleWorkspaceView() {
                   </div>
 
                   {/* Dual Image Illustration Concept / Full Color Image with Direct Canvas Mouse Drag & Resize */}
-                  <div className="flex-1 my-1 bg-slate-50/50 rounded-xl border border-slate-200/80 overflow-hidden relative flex flex-col items-center justify-center">
+                  <div className={`flex-1 my-1 relative flex flex-col items-center justify-center overflow-hidden transition-all ${showPageFrame ? 'bg-slate-50/50 rounded-xl border border-slate-200/80' : 'bg-transparent border-0 rounded-none'}`}>
                     {/* Render Page Images */}
                     {getPageImages(activePage).length > 0 ? (
                       <div 
@@ -1704,27 +1748,6 @@ export default function SimpleWorkspaceView() {
                         )}
                       </div>
 
-                      {/* 2. Color Guide Reference Frame - Fixed at Bottom-Left */}
-                      {!isFullColorMode && (getPageImages(activePage)[0]?.url || activePage.illustrationUrl) && (
-                        <div 
-                          className="flex-none flex flex-col items-center bg-white p-1 rounded-xl border-2 border-purple-500 shadow-sm overflow-hidden"
-                          style={{ width: '3.6cm', height: '3.6cm', maxWidth: '4.5cm', maxHeight: '4.5cm' }}
-                          title={isAr ? 'دليل الصورة الملونة الأصلية (معاينة)' : 'Original Color Guide Reference'}
-                        >
-                          <div className="w-full bg-purple-600 text-white text-[8px] font-bold text-center py-0.5 rounded-t leading-none flex items-center justify-center gap-1 shadow-2xs shrink-0">
-                            <span>🎨</span>
-                            <span>{isAr ? 'دليل التلوين' : 'Color Guide'}</span>
-                          </div>
-                          <div className="w-full flex-1 flex items-center justify-center overflow-hidden p-0.5 bg-slate-50 rounded-b border-t border-purple-100 min-h-0">
-                            <img 
-                              src={getPageImages(activePage)[0]?.url || activePage.illustrationUrl} 
-                              alt="Original Color Guide" 
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-contain rounded"
-                            />
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
                   </>
@@ -2005,343 +2028,339 @@ export default function SimpleWorkspaceView() {
                       </div>
                     </div>
 
-                    {/* Full Color Image Scale & Positioning Box OR Outline Extractor */}
-                    {isFullColorMode ? (
-                      <div className="bg-white border border-purple-200 p-5 rounded-2xl shadow-xs space-y-4">
-                        <h4 className="text-xs uppercase font-mono font-bold text-purple-700 tracking-wider flex items-center justify-end gap-1.5 border-b border-purple-100 pb-2.5">
-                          {isAr ? 'أدوات قص ومط وتحريك الصورة' : 'Image Crop, Stretch & Adjustments'}
-                          <Sliders className="w-4 h-4 text-purple-600" />
-                        </h4>
+                    {/* Unified Image, Outline & Coloring Book Control Panel */}
+                    <div className="bg-white border border-purple-200 p-5 rounded-2xl shadow-xs space-y-4">
+                      
+                      {/* Section Header */}
+                      <h4 className="text-xs uppercase font-mono font-bold text-purple-800 tracking-wider flex items-center justify-between border-b border-purple-100 pb-2.5">
+                        <span className="flex items-center gap-1.5">
+                          <Palette className="w-4 h-4 text-purple-600" />
+                          {isAr ? 'أدوات التلوين والأوتلاين وحجم الصورة' : 'Coloring, Outline & Image Controls'}
+                        </span>
+                      </h4>
 
-                        {/* Crop & Remove BG Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCropImageSrc(activePage?.illustrationUrl || '');
-                            setIsCropModalOpen(true);
-                          }}
-                          className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
-                        >
-                          <Scissors className="w-4 h-4" />
-                          {isAr ? '✂️ قص وتعديل الصورة وإزالة الخلفية (PNG)' : '✂️ Crop & Remove Background (PNG)'}
-                        </button>
-
-                        {/* Mouse Interaction Tip Box */}
-                        <div className="bg-purple-50/80 border border-purple-200 p-3 rounded-xl text-right text-[11px] text-purple-900 leading-relaxed space-y-1">
-                          <div className="font-bold flex items-center justify-end gap-1 text-purple-700">
-                            {isAr ? '💡 حرية المط والكمش بجميع الاتجاهات:' : '💡 Freeform Stretch in All Directions:'}
-                            <Move className="w-3.5 h-3.5" />
-                          </div>
-                          <p className="text-[10px] text-purple-800">
-                            {isAr 
-                              ? 'امسك بالفأرة أي جانب من الأجناب الأربعة للصورة لمطها أو كمشها بالاتجاه الذي يناسبك، أو اسحب المقابض الأربعة في الزوايا.'
-                              : 'Drag any of the 4 side handles to stretch/compress horizontally or vertically, or use the 4 corner handles.'}
-                          </p>
-                        </div>
-
-                        {/* Quick Action: Auto Fit to Page */}
-                        <button
-                          type="button"
-                          onClick={handleAutoFitImage}
-                          className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-xs"
-                        >
-                          <Maximize2 className="w-4 h-4" />
-                          {isAr ? '⚡ ضبط تلقائي لحجم الصورة على الصفحة' : '⚡ Auto-fit Image to Page'}
-                        </button>
-
-                        {/* Centimeter Dimensions Direct Controls */}
-                        <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
-                          <label className="block text-xs font-bold text-purple-900 text-right">
-                            {isAr ? '📐 تحديد الأبعاد بالسنتيمتر (cm):' : '📐 Centimeter Dimensions (cm):'}
-                          </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <span className="block text-[10px] text-purple-800 font-bold mb-0.5 text-right">
-                                {isAr ? 'العرض (cm):' : 'Width (cm):'}
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <input 
-                                  type="number"
-                                  step="0.5"
-                                  min="1"
-                                  max="21"
-                                  value={(14.0 * (imageScale / 100) * (imageScaleX / 100)).toFixed(1)}
-                                  onChange={(e) => {
-                                    const wCm = Number(e.target.value) || 10;
-                                    const newScaleX = Math.round((wCm / (14.0 * (imageScale / 100))) * 100);
-                                    setImageScaleX(newScaleX);
-                                    updatePageParam({ imageScaleX: newScaleX });
-                                  }}
-                                  className="w-full p-1.5 bg-white border border-purple-300 rounded text-center text-xs font-mono font-bold text-purple-900"
-                                />
-                                <span className="text-[10px] font-bold text-purple-700">سم</span>
-                              </div>
-                            </div>
-
-                            <div>
-                              <span className="block text-[10px] text-purple-800 font-bold mb-0.5 text-right">
-                                {isAr ? 'الارتفاع (cm):' : 'Height (cm):'}
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <input 
-                                  type="number"
-                                  step="0.5"
-                                  min="1"
-                                  max="29"
-                                  value={(12.0 * (imageScale / 100) * (imageScaleY / 100)).toFixed(1)}
-                                  onChange={(e) => {
-                                    const hCm = Number(e.target.value) || 10;
-                                    const newScaleY = Math.round((hCm / (12.0 * (imageScale / 100))) * 100);
-                                    setImageScaleY(newScaleY);
-                                    updatePageParam({ imageScaleY: newScaleY });
-                                  }}
-                                  className="w-full p-1.5 bg-white border border-purple-300 rounded text-center text-xs font-mono font-bold text-purple-900"
-                                />
-                                <span className="text-[10px] font-bold text-purple-700">سم</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Image Scale Slider (Uniform) */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
-                            <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs">{imageScale}%</span>
-                            <span className="flex items-center gap-1">
-                              <ZoomIn className="w-3.5 h-3.5 text-purple-500" />
-                              {isAr ? 'التكبير والتصغير الشامل (Overall Scale):' : 'Overall Scale:'}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="20"
-                            max="300"
-                            value={imageScale}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setImageScale(val);
-                              updatePageParam({ imageScale: val });
+                      {/* 1. Design Mode Selector (Full Color vs Coloring Outline) */}
+                      <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl space-y-2">
+                        <label className="block text-xs font-bold text-purple-900 text-right">
+                          {isAr ? '🎨 نمط تصميم الكتاب:' : '🎨 Book Design Mode:'}
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateBookMetadata({ designMode: 'fullcolor' });
                             }}
-                            className="w-full accent-purple-600 cursor-pointer"
-                          />
-                        </div>
+                            className={`py-2 px-2 text-center text-xs font-bold rounded-xl border transition flex items-center justify-center gap-1.5 ${
+                              isFullColorMode
+                                ? 'bg-purple-600 text-white border-purple-700 shadow-xs'
+                                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>🎨</span>
+                            <span>{isAr ? 'صورة ملونة بالكامل' : 'Full Color'}</span>
+                          </button>
 
-                        {/* Freeform Horizontal Stretch X Slider */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
-                            <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-xs">{imageScaleX}%</span>
-                            <span className="flex items-center gap-1">
-                              <Sliders className="w-3.5 h-3.5 text-amber-600" />
-                              {isAr ? 'المط / الكمش الأفقي (Horizontal Stretch X):' : 'Horizontal Stretch (X):'}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="20"
-                            max="300"
-                            value={imageScaleX}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setImageScaleX(val);
-                              updatePageParam({ imageScaleX: val });
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateBookMetadata({ designMode: 'coloring' });
                             }}
-                            className="w-full accent-amber-500 cursor-pointer"
-                          />
+                            className={`py-2 px-2 text-center text-xs font-bold rounded-xl border transition flex items-center justify-center gap-1.5 ${
+                              !isFullColorMode
+                                ? 'bg-amber-500 text-slate-950 border-amber-600 font-extrabold shadow-xs'
+                                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>✏️</span>
+                            <span>{isAr ? 'مفرغ للتلوين (Outline)' : 'Coloring Outline'}</span>
+                          </button>
                         </div>
-
-                        {/* Freeform Vertical Stretch Y Slider */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
-                            <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-xs">{imageScaleY}%</span>
-                            <span className="flex items-center gap-1">
-                              <Sliders className="w-3.5 h-3.5 text-amber-600" />
-                              {isAr ? 'المط / الكمش الرأسي (Vertical Stretch Y):' : 'Vertical Stretch (Y):'}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="20"
-                            max="300"
-                            value={imageScaleY}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setImageScaleY(val);
-                              updatePageParam({ imageScaleY: val });
-                            }}
-                            className="w-full accent-amber-500 cursor-pointer"
-                          />
-                        </div>
-
-                        {/* Image Offset Y Slider */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
-                            <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs">{imageOffsetY}px</span>
-                            <span className="flex items-center gap-1">
-                              <Move className="w-3.5 h-3.5 text-purple-500" />
-                              {isAr ? 'الموقع الرأسي (أعلى / أسفل):' : 'Vertical Offset (Y):'}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="-250"
-                            max="250"
-                            value={imageOffsetY}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setImageOffsetY(val);
-                              updatePageParam({ imageOffsetY: val });
-                            }}
-                            className="w-full accent-purple-600 cursor-pointer"
-                          />
-                        </div>
-
-                        {/* Image Offset X Slider */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
-                            <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs">{imageOffsetX}px</span>
-                            <span className="flex items-center gap-1">
-                              <Move className="w-3.5 h-3.5 text-purple-500" />
-                              {isAr ? 'الموقع الأفقي (يمين / يسار):' : 'Horizontal Offset (X):'}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="-250"
-                            max="250"
-                            value={imageOffsetX}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setImageOffsetX(val);
-                              updatePageParam({ imageOffsetX: val });
-                            }}
-                            className="w-full accent-purple-600 cursor-pointer"
-                          />
-                        </div>
-
-                        {/* Image Opacity & Watermark Control */}
-                        <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                          <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
-                            <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs font-extrabold">{imageOpacity}%</span>
-                            <span className="flex items-center gap-1">
-                              <Sliders className="w-3.5 h-3.5 text-purple-600" />
-                              {isAr ? 'شفافية الصورة / العلامة المائية (Opacity):' : 'Image Transparency / Watermark:'}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="10"
-                            max="100"
-                            step="5"
-                            value={imageOpacity}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setImageOpacity(val);
-                              if (activePage) {
-                                const currentImages = getPageImages(activePage);
-                                const updated = currentImages.map(img => 
-                                  selectedImageId && img.id === selectedImageId 
-                                    ? { ...img, opacity: val }
-                                    : { ...img, opacity: val }
-                                );
-                                updatePage(activePage.id, { pageImages: updated, imageOpacity: val });
-                              }
-                            }}
-                            className="w-full accent-purple-600 cursor-pointer"
-                          />
-                          <div className="grid grid-cols-2 gap-1.5 pt-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setImageOpacity(20);
-                                if (activePage) {
-                                  const currentImages = getPageImages(activePage);
-                                  const updated = currentImages.map(img => ({ ...img, opacity: 20, isWatermark: true }));
-                                  updatePage(activePage.id, { pageImages: updated, imageOpacity: 20 });
-                                }
-                              }}
-                              className={`py-1 px-2 text-[10px] font-bold rounded-lg border transition ${
-                                imageOpacity <= 30
-                                  ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                              }`}
-                            >
-                              {isAr ? '💧 علامة مائية (20%)' : '💧 Watermark (20%)'}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setImageOpacity(100);
-                                if (activePage) {
-                                  const currentImages = getPageImages(activePage);
-                                  const updated = currentImages.map(img => ({ ...img, opacity: 100, isWatermark: false }));
-                                  updatePage(activePage.id, { pageImages: updated, imageOpacity: 100 });
-                                }
-                              }}
-                              className={`py-1 px-2 text-[10px] font-bold rounded-lg border transition ${
-                                imageOpacity > 80
-                                  ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                              }`}
-                            >
-                              {isAr ? '✨ وضوح كامل (100%)' : '✨ Full (100%)'}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Reset Button */}
-                        <button
-                          type="button"
-                          onClick={handleAutoFitImage}
-                          className="w-full py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 border border-purple-200"
-                        >
-                          <Maximize2 className="w-3.5 h-3.5" />
-                          {isAr ? 'إعادة ضبط حجم ونسب الصورة للأصل' : 'Reset Image Scale & Aspect'}
-                        </button>
                       </div>
-                    ) : (
-                      /* Kids Smart Outline Extractor Controls */
-                      <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4">
-                        <h4 className="text-xs uppercase font-mono font-bold text-slate-500 tracking-wider flex items-center justify-end gap-1.5 border-b border-slate-100 pb-2.5">
-                          {isAr ? 'منقّي خطوط التلوين الذكي' : 'Kids Smart Outline Extractor'}
-                          <Wand2 className="w-4 h-4 text-brand-500" />
-                        </h4>
 
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-sans text-slate-600 font-semibold">
-                            {isAr ? 'تفعيل منقّي الخطوط التلقائي للطفل:' : 'Enable kids outline extractor:'}
-                          </span>
-                          <input
-                            type="checkbox"
-                            checked={useSmartOutline}
-                            onChange={(e) => setUseSmartOutline(e.target.checked)}
-                            className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
-                          />
-                        </div>
-
-                        {useSmartOutline && (
-                          <div className="space-y-2 pt-1">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                              <span className="font-mono text-xs">{outlineThreshold}</span>
-                              <span>{isAr ? 'حساسية سماكة خطوط التلوين:' : 'Outline sensitivity:'}</span>
-                            </div>
+                      {/* 2. Kids Smart Outline Extractor (Line Thickness & Sensitivity) */}
+                      {!isFullColorMode && (
+                        <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-3">
+                          <div className="flex items-center justify-between border-b border-amber-200/80 pb-2">
+                            <span className="text-xs font-bold text-amber-900 flex items-center gap-1">
+                              <Wand2 className="w-4 h-4 text-amber-600" />
+                              {isAr ? 'منقّي وسماكة خطوط التلوين الأسود:' : 'Black Line Outline Converter:'}
+                            </span>
                             <input
-                              type="range"
-                              min="5"
-                              max="100"
-                              value={outlineThreshold}
-                              onChange={(e) => setOutlineThreshold(Number(e.target.value))}
-                              className="w-full accent-brand-500"
+                              type="checkbox"
+                              checked={useSmartOutline}
+                              onChange={(e) => setUseSmartOutline(e.target.checked)}
+                              className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500 cursor-pointer"
                             />
-                            <p className="text-[9px] text-slate-400 text-right leading-normal">
-                              {isAr 
-                                ? '💡 اسحب للتحكم في وضوح وسماكة الخطوط؛ القيمة الأقل تزيد من إبراز أدق تفاصيل الرسمة.' 
-                                : '💡 Drag to control outline thickness; lower values reveal more detailed drawing contours.'}
-                            </p>
                           </div>
-                        )}
+
+                          {useSmartOutline && (
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center text-[11px] font-bold text-amber-900">
+                                <span className="font-mono text-xs bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-extrabold">{outlineThreshold}</span>
+                                <span>{isAr ? 'سماكة ووضوح خطوط الرسم الأسود:' : 'Line Thickness & Sensitivity:'}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="5"
+                                max="100"
+                                value={outlineThreshold}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setOutlineThreshold(val);
+                                  updatePageParam({ outlineThreshold: val });
+                                }}
+                                className="w-full accent-amber-600 cursor-pointer"
+                              />
+                              <div className="flex justify-between text-[9px] font-bold text-amber-800">
+                                <span>{isAr ? 'خطوط عريضة بارزة (100)' : 'Thick Bold Lines'}</span>
+                                <span>{isAr ? 'خطوط دقيقة (5)' : 'Fine Detail Lines'}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 3. Mini Colored Reference Model (النموذج الملون المصغر للتوجيه في أعلى اليمين) */}
+                      {!isFullColorMode && (
+                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                              <span>🖼️</span>
+                              {isAr ? 'النموذج الملون المصغر (في أعلى اليمين):' : 'Mini Colored Reference Model (Top-Right):'}
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={showColorGuide}
+                              onChange={(e) => {
+                                setShowColorGuide(e.target.checked);
+                                updatePageParam({ showColorGuide: e.target.checked });
+                              }}
+                              className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500 cursor-pointer"
+                            />
+                          </div>
+
+                          {showColorGuide && (
+                            <div className="space-y-2 pt-1 border-t border-slate-200/80">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-600 mb-1 text-right">
+                                    {isAr ? 'الحجم (Size):' : 'Size:'}
+                                  </label>
+                                  <select
+                                    value={colorGuideSize}
+                                    onChange={(e) => {
+                                      const sz = e.target.value as any;
+                                      setColorGuideSize(sz);
+                                      updatePageParam({ colorGuideSize: sz });
+                                    }}
+                                    className="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-800 text-right"
+                                  >
+                                    <option value="small">{isAr ? 'صغير (2.8 سم)' : 'Small (2.8 cm)'}</option>
+                                    <option value="medium">{isAr ? 'متوسط (3.6 سم)' : 'Medium (3.6 cm)'}</option>
+                                    <option value="large">{isAr ? 'كبير (4.8 سم)' : 'Large (4.8 cm)'}</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-600 mb-1 text-right">
+                                    {isAr ? 'الموقع (Position):' : 'Position:'}
+                                  </label>
+                                  <select
+                                    value={colorGuidePosition}
+                                    onChange={(e) => {
+                                      const pos = e.target.value as any;
+                                      setColorGuidePosition(pos);
+                                      updatePageParam({ colorGuidePosition: pos });
+                                    }}
+                                    className="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-800 text-right"
+                                  >
+                                    <option value="top-right">{isAr ? 'أعلى اليمين' : 'Top Right'}</option>
+                                    <option value="top-left">{isAr ? 'أعلى اليسار' : 'Top Left'}</option>
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 4. Page Layout Freedom (صفحة حرة بدون إطارات إجبارية) */}
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                        <div className="text-right">
+                          <span className="block text-xs font-bold text-slate-800">
+                            {isAr ? 'إظهار إطار حدود الصفحة:' : 'Show Page Border Frame:'}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            {isAr ? 'الافتراضي صفحة حرة بدون إطارات إجبارية' : 'Default is free page without forced frame'}
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={showPageFrame}
+                          onChange={(e) => {
+                            setShowPageFrame(e.target.checked);
+                            updatePageParam({ showPageFrame: e.target.checked });
+                          }}
+                          className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500 cursor-pointer"
+                        />
                       </div>
-                    )}
+
+                      {/* 5. Crop & Remove BG Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCropImageSrc(activePage?.illustrationUrl || '');
+                          setIsCropModalOpen(true);
+                        }}
+                        className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
+                      >
+                        <Scissors className="w-4 h-4" />
+                        {isAr ? '✂️ قص وتعديل الصورة وإزالة الخلفية (PNG)' : '✂️ Crop & Remove Background (PNG)'}
+                      </button>
+
+                      {/* Quick Action: Auto Fit to Page */}
+                      <button
+                        type="button"
+                        onClick={handleAutoFitImage}
+                        className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-xs"
+                      >
+                        <Maximize2 className="w-4 h-4" />
+                        {isAr ? '⚡ ضبط تلقائي لحجم الصورة على الصفحة' : '⚡ Auto-fit Image to Page'}
+                      </button>
+
+                      {/* Centimeter Dimensions Direct Controls */}
+                      <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
+                        <label className="block text-xs font-bold text-purple-900 text-right">
+                          {isAr ? '📐 تحديد الأبعاد بالسنتيمتر (cm):' : '📐 Centimeter Dimensions (cm):'}
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="block text-[10px] text-purple-800 font-bold mb-0.5 text-right">
+                              {isAr ? 'العرض (cm):' : 'Width (cm):'}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <input 
+                                type="number"
+                                step="0.5"
+                                min="1"
+                                max="21"
+                                value={(14.0 * (imageScale / 100) * (imageScaleX / 100)).toFixed(1)}
+                                onChange={(e) => {
+                                  const wCm = Number(e.target.value) || 10;
+                                  const newScaleX = Math.round((wCm / (14.0 * (imageScale / 100))) * 100);
+                                  setImageScaleX(newScaleX);
+                                  updatePageParam({ imageScaleX: newScaleX });
+                                }}
+                                className="w-full p-1.5 bg-white border border-purple-300 rounded text-center text-xs font-mono font-bold text-purple-900"
+                              />
+                              <span className="text-[10px] font-bold text-purple-700">سم</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <span className="block text-[10px] text-purple-800 font-bold mb-0.5 text-right">
+                              {isAr ? 'الارتفاع (cm):' : 'Height (cm):'}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <input 
+                                type="number"
+                                step="0.5"
+                                min="1"
+                                max="29"
+                                value={(12.0 * (imageScale / 100) * (imageScaleY / 100)).toFixed(1)}
+                                onChange={(e) => {
+                                  const hCm = Number(e.target.value) || 10;
+                                  const newScaleY = Math.round((hCm / (12.0 * (imageScale / 100))) * 100);
+                                  setImageScaleY(newScaleY);
+                                  updatePageParam({ imageScaleY: newScaleY });
+                                }}
+                                className="w-full p-1.5 bg-white border border-purple-300 rounded text-center text-xs font-mono font-bold text-purple-900"
+                              />
+                              <span className="text-[10px] font-bold text-purple-700">سم</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Image Scale Slider (Uniform) */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                          <span className="font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded text-xs">{imageScale}%</span>
+                          <span className="flex items-center gap-1">
+                            <ZoomIn className="w-3.5 h-3.5 text-purple-500" />
+                            {isAr ? 'التكبير والتصغير الشامل (Overall Scale):' : 'Overall Scale:'}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="20"
+                          max="300"
+                          value={imageScale}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setImageScale(val);
+                            updatePageParam({ imageScale: val });
+                          }}
+                          className="w-full accent-purple-600 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Freeform Horizontal Stretch X Slider */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                          <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-xs">{imageScaleX}%</span>
+                          <span className="flex items-center gap-1">
+                            <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                            {isAr ? 'المط / الكمش الأفقي (Horizontal Stretch X):' : 'Horizontal Stretch (X):'}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="20"
+                          max="300"
+                          value={imageScaleX}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setImageScaleX(val);
+                            updatePageParam({ imageScaleX: val });
+                          }}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Freeform Vertical Stretch Y Slider */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                          <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-xs">{imageScaleY}%</span>
+                          <span className="flex items-center gap-1">
+                            <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                            {isAr ? 'المط / الكمش الرأسي (Vertical Stretch Y):' : 'Vertical Stretch (Y):'}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="20"
+                          max="300"
+                          value={imageScaleY}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setImageScaleY(val);
+                            updatePageParam({ imageScaleY: val });
+                          }}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Reset Button */}
+                      <button
+                        type="button"
+                        onClick={handleAutoFitImage}
+                        className="w-full py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 border border-purple-200"
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                        {isAr ? 'إعادة ضبط حجم ونسب الصورة للأصل' : 'Reset Image Scale & Aspect'}
+                      </button>
+                    </div>
 
                     {/* Title & Instructions & Extra Text edits */}
                     <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-4">
